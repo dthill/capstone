@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      - MYSQL_DATABASE=ecommerce
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - db:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - '3306:3306'
+  backend:
+    restart: always
+    depends_on:
+      - db
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    ports:
+      - '80:8080'
+    environment:
+      - DB_PASSWORD=${DB_PASSWORD}
+volumes:
+  db:
+    driver: local
