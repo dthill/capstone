@@ -14,27 +14,5 @@ export class AppComponent implements OnInit {
   ngOnInit(): void {
   }
 
-  login() {
-    this.apiService.login('user', 'Test123456')
-      .pipe(catchError(error => {
-        return of(error)
-      }))
-      .subscribe((response) => {
-        console.log(response)
-      })
-  }
 
-  logout() {
-    this.apiService.logout().subscribe(console.log)
-  }
-
-  invalidLogin() {
-    this.apiService.login('user1', 'Test123456')
-      .pipe(catchError(error => {
-        return of(-1)
-      }))
-      .subscribe((response) => {
-        console.log(response)
-      })
-  }
 }

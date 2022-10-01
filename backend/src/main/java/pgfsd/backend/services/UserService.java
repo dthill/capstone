@@ -28,12 +28,12 @@ public class UserService implements UserDetailsService {
 
     @Transactional
     public UserDto registerUser(UserRegistrationDto userRegistrationDto) {
-        User existingUser = userRepository.findUserByUsername(userRegistrationDto.getUsername());
+        User existingUser = userRepository.findUserByUsername(userRegistrationDto.getEmail());
         if (existingUser != null) {
             return null;
         }
         User user = new User();
-        user.setUsername(userRegistrationDto.getUsername());
+        user.setUsername(userRegistrationDto.getEmail());
         user.setPassword(userRegistrationDto.getPassword());
         user.setIsAdmin(false);
         User savedUser = userRepository.save(user);

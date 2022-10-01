@@ -1,1 +1,15 @@
-<p>register works!</p>
+<form [formGroup]="registerForm" (submit)="register($event)" class="form-group card p-4">
+    <h1 class="text-center mb-3">Register</h1>
+    <label for="email" class="form-label">Email</label>
+    <input formControlName="email" type="email" id="email" class="form-control" />
+    <small *ngIf="email?.touched && email?.invalid" class="text-danger my-1">Field required</small>
+    <label for="Password" class="form-label">Password</label>
+    <input formControlName="password" type="password" id="Password" class="form-control" />
+    <small *ngIf="password?.touched && password?.invalid" class="text-danger mt-1">
+        Field required
+    </small>
+    <button [disabled]="registerForm.invalid" class="btn btn-primary mt-3 mb-2" type="submit">
+        Register
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">An error occurred please check your username and password.</p>
+</form>

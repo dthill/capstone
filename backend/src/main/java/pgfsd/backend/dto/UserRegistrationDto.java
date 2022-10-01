@@ -6,8 +6,8 @@ import javax.validation.constraints.Size;
 
 @Data
 public class UserRegistrationDto {
-    @Size(min = 3, max = 50)
-    private String username;
-    @Size(min = 3, max = 50)
+    @Size(min = 3, max = 200)
+    private String email;
+    @Size(min = 5, max = 200)
     private String password;
 }
