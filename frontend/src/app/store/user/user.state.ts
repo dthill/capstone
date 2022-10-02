@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { State, Action, StateContext } from '@ngxs/store';
 import { catchError, concatMap, EMPTY, of, tap } from 'rxjs';
 import { ApiService } from 'src/app/services/api.service';
-import { LoginAction, LogoutAction, RegisterAction } from './user.actions';
+import { CheckMeAction, LoginAction, LogoutAction, RegisterAction } from './user.actions';
 
 export class UserStateModel {
   user!: {
@@ -27,6 +27,25 @@ const defaults: UserStateModel = {
 export class UserState {
 
   constructor(private apiService: ApiService) { }
+
+  @Action(CheckMeAction)
+  me(ctx: StateContext<UserStateModel>) {
+    ctx.patchState({ loading: true })
+    return this.apiService.me().pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        ctx.patchState({ loading: false })
+        if (!response) {
+          ctx.patchState(defaults)
+        } else {
+          ctx.patchState({ error: false, user: response as any })
+        }
+      })
+    )
+  }
 
   @Action(LoginAction)
   login(ctx: StateContext<UserStateModel>, { email, password }: LoginAction) {

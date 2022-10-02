@@ -1,3 +1,9 @@
+
+export class CheckMeAction {
+  static readonly type = '[User] Check user me';
+}
+
+
 export class LoginAction {
   static readonly type = '[User] Login user';
   constructor(public email: string, public password: string) { }
