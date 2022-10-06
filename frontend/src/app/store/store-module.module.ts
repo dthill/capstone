@@ -4,8 +4,10 @@ import { NgxsModule } from '@ngxs/store';
 import { environment } from 'src/environments/environment';
 import { UserState } from './user/user.state';
 import { NgxsReduxDevtoolsPluginModule } from '@ngxs/devtools-plugin';
+import { LoadAllProductsAction } from './product-admin/product-admin.actions';
+import { ProductAdminState } from './product-admin/product-admin.state';
 
-const states = [UserState]
+const states = [UserState, ProductAdminState]
 
 
 @NgModule({

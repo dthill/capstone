@@ -43,4 +43,8 @@ export class ApiService {
   logout() {
     return this.http.get('http://localhost:8080/user/logout')
   }
+
+  getAllProducts() {
+    return this.http.get('http://localhost:8080/products')
+  }
 }

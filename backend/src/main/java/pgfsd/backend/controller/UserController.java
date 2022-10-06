@@ -28,6 +28,9 @@ public class UserController {
 
     @GetMapping("/login")
     public UserDto login(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
         User user = (User) authentication.getPrincipal();
         return new UserDto(user.getUsername(), user.getIsAdmin());
     }
@@ -44,7 +47,7 @@ public class UserController {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity handleBadCredentials(Exception e) {
+    public ResponseEntity<ResponseStatus> handleBadCredentials(Exception e) {
         return ResponseEntity.ok().build();
     }
 
