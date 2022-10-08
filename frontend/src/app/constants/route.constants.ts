@@ -6,3 +6,7 @@ export const routeConstants = {
   admin: 'admin',
   productAdmin: 'product'
 }
+
+export const routeParams = {
+  productId: 'pid'
+}

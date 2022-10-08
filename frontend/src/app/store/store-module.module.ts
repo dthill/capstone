@@ -6,8 +6,9 @@ import { UserState } from './user/user.state';
 import { NgxsReduxDevtoolsPluginModule } from '@ngxs/devtools-plugin';
 import { LoadAllProductsAction } from './product-admin/product-admin.actions';
 import { ProductAdminState } from './product-admin/product-admin.state';
+import { ProductDetailsState } from './product-details/product-details.state';
 
-const states = [UserState, ProductAdminState]
+const states = [UserState, ProductAdminState, ProductDetailsState]
 
 
 @NgModule({

@@ -2,10 +2,8 @@ package pgfsd.backend.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import pgfsd.backend.dto.ProductDetailsDto;
 import pgfsd.backend.dto.SaveProductDto;
 import pgfsd.backend.entities.Product;
 import pgfsd.backend.services.ProductService;
@@ -26,8 +24,23 @@ public class ProductController {
         return this.productService.getAllProducts();
     }
 
-    @PostMapping("/save/product")
-    public Product saveProduct(@Validated @RequestBody SaveProductDto saveProductDto) {
-        return this.productService.saveProduct(saveProductDto);
+    @GetMapping("/products/{id}")
+    public Product productById(@Validated @PathVariable Long id) {
+        return this.productService.getProduct(id);
+    }
+
+    @PostMapping("/add/product")
+    public List<Product> addProduct(@Validated @RequestBody SaveProductDto saveProductDto) {
+        return this.productService.addProduct(saveProductDto);
+    }
+
+    @PutMapping("/update/product")
+    public Product updateProduct(@Validated @RequestBody ProductDetailsDto productDetailsDto) {
+        return this.productService.updateProduct(productDetailsDto);
+    }
+
+    @DeleteMapping("/delete/product")
+    public List<Product> delete(@Validated @RequestBody ProductDetailsDto productDetailsDto) {
+        return this.productService.deleteProduct(productDetailsDto);
     }
 }

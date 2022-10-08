@@ -1,5 +1,7 @@
 package pgfsd.backend.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,6 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 public class UserController {
 
     private final UserService userService;
+    private Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     public UserController(UserService userService) {
@@ -28,6 +31,7 @@ public class UserController {
 
     @GetMapping("/login")
     public UserDto login(Authentication authentication) {
+        logger.info("controller: /login ");
         if (authentication == null) {
             return null;
         }
@@ -37,17 +41,20 @@ public class UserController {
 
     @GetMapping("/logout")
     public ResponseEntity logout(SecurityContextLogoutHandler securityContextLogoutHandler, HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+        logger.info("controller: /logout");
         securityContextLogoutHandler.logout(request, response, authentication);
         return ResponseEntity.ok().build();
     }
 
     @PostMapping("/register")
     public UserDto registerUser(@Validated @RequestBody UserRegistrationDto userRegistrationDto) {
+        logger.info("controller: /register params: " + userRegistrationDto.toString());
         return userService.registerUser(userRegistrationDto);
     }
 
     @ExceptionHandler(BadCredentialsException.class)
     public ResponseEntity<ResponseStatus> handleBadCredentials(Exception e) {
+        logger.info("badCredentialsException handler called exception:"+e.toString());
         return ResponseEntity.ok().build();
     }
 

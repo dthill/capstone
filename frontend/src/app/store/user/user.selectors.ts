@@ -9,6 +9,16 @@ export class UserSelectors {
   }
 
   @Selector([UserState])
+  public static loggedIn(state: UserStateModel): boolean {
+    return !!state.user.email
+  }
+
+  @Selector([UserState])
+  public static isAdmin(state: UserStateModel): boolean {
+    return !!state.user.isAdmin
+  }
+
+  @Selector([UserState])
   public static loading(state: UserStateModel): boolean {
     return state.loading
   }

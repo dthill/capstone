@@ -1,21 +1,22 @@
-<h2>Products</h2>
-<form class="card p-3 form-group" [formGroup]="addProductForm">
-  <h3>New product</h3>
-  <label class="form-label" for="name">Name</label>
-  <input required autocomplete="off" class="form-control" id="name" type="text" formControlName="name">
-  <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
-    This field is required and has a min length of 3 and a max length of 100 chars
-  </p>
-  <label class="form-label" for="description">Description</label>
-  <textarea required autocomplete="off" class="form-control" id="description" type="text" formControlName="description">
-  </textarea>
-  <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
-    This field is required and has a min length of 3 and a max length of 200 chars
-  </p>
-  <label class="form-label" for="price">Price (in cents)</label>
-  <input required autocomplete="off" class="form-control" id="price" type="tel" formControlName="price">
-  <p *ngIf="price?.touched && price?.invalid" class="text-danger mt-1">
-    This field is required, can only contain integers and needs to be greater then 1.
-  </p>
-  <button [disabled]="addProductForm.invalid" class="btn btn-primary mt-3" type="submit">Add+</button>
-</form>
+<h2 class="text-center">Products</h2>
+<div class="card p-3 my-3">
+  <div class="row fw-bold pb-3 border-bottom">
+    <div class="col-2 col-sm-1">Id</div>
+    <div class="col-3 col-sm-3">Name</div>
+    <div class="col-4 col-sm-4">Description</div>
+    <div class="col-2 col-sm-2">$</div>
+    <div class="col-1 col-sm-1"></div>
+  </div>
+  <div class="row border-bottom" *ngFor="let product of products$ | async; trackBy: trackByFn">
+      <div class="col-2 col-sm-1 fw-bold">{{product.id}}</div>
+      <div class="col-3 col-sm-3">{{product.name}}</div>
+      <div class="col-4 col-sm-4">{{product.description}}</div>
+      <div class="col-2 col-sm-2">{{product.price}}</div>
+      <div class="col-1 col-sm-1">
+        <button class="btn" [routerLink]="[product.id]"><i class="bi-pencil"></i></button>
+        <button class="btn" (click)="delete(product)"><i class="bi-trash"></i></button>
+      </div>
+  </div>
+</div>
+
+<app-add-product></app-add-product>

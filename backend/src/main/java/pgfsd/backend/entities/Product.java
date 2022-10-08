@@ -1,17 +1,20 @@
 package pgfsd.backend.entities;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import javax.persistence.*;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 import java.util.Objects;
 
 @Getter
 @Setter
 @NoArgsConstructor
+@AllArgsConstructor
 @Entity
 @Table(name = "product")
 public class Product {
@@ -23,6 +26,7 @@ public class Product {
     private String name;
     @Size(min = 3, max = 200)
     private String description;
+    @NotNull
     @Min(1)
     private Long price;
 
