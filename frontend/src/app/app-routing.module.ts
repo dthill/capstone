@@ -10,7 +10,7 @@ const routes: Routes = [
   {
     path: routeConstants.admin,
     loadChildren: () => import('./pages/admin/admin.module').then(m => m.AdminModule),
-    // canActivate: [AuthGuard, AdminGuard]
+    canActivate: [AuthGuard, AdminGuard]
   },
   { path: routeConstants.home, loadChildren: () => import('./pages/home/home.module').then(m => m.HomeModule) },
 
