@@ -1,1 +1,11 @@
-<p>products works!</p>
+<app-product-search [categories]="categories$ | async"></app-product-search>
+<main class="row">
+    <h3 class="mb-4">Products</h3>
+    <div class="row g-3">
+        <app-product-card
+            *ngFor="let product of products$ | async"
+            [product]="product"
+            class="col-12 col-sm-6 col-md-4 col-lg-3"
+        ></app-product-card>
+    </div>
+</main>

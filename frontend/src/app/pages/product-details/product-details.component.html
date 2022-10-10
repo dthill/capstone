@@ -1,0 +1,11 @@
+<main *ngIf="product$ | async as product" class="row">
+    <div class="col-12 col-sm-6 mb-4">
+        <img class="w-100 d-block product-image" [src]="product.imageUrl" [alt]="product.name" />
+    </div>
+    <div class="col-12 col-sm-6">
+        <h2 class="mb-4">{{ product.name }}</h2>
+        <p class="mb-4">{{ product.description }}</p>
+        <p class="mb-3 fw-bold">{{ displayPrice(product.price) }}</p>
+        <button (click)="addToCart(product)" class="btn btn-secondary w-100">Add to cart</button>
+    </div>
+</main>

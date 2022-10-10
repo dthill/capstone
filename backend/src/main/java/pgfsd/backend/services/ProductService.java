@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pgfsd.backend.dto.ProductAdminDto;
 import pgfsd.backend.dto.ProductDetailsDto;
+import pgfsd.backend.dto.ProductSearchDto;
 import pgfsd.backend.dto.SaveProductDto;
 import pgfsd.backend.entities.Category;
 import pgfsd.backend.entities.Product;
@@ -30,8 +31,24 @@ public class ProductService {
         this.categoryRepository = categoryRepository;
     }
 
+    public ProductAdminDto searchAllProducts(ProductSearchDto productSearchDto) {
+        ProductAdminDto productAdminDto = new ProductAdminDto();
+        productAdminDto.setPossibleCategories(categoryRepository.findAll());
+        String searchTerm = productSearchDto.getProductSearch();
+        if(searchTerm == null) {
+            searchTerm = "";
+        }
+        searchTerm = "%" + searchTerm + "%";
+        if(productSearchDto.getCategoryId() != null){
+            productAdminDto.setProducts(productRepository.searchAllEnabledProductsAndCategories(searchTerm, productSearchDto.getCategoryId()));
+        } else {
+            productAdminDto.setProducts(productRepository.searchAllEnabledProducts(searchTerm));
+        }
+        return productAdminDto;
+    }
 
-    public ProductAdminDto getAllProducts() {
+
+    public ProductAdminDto getAllAdminProducts() {
         ProductAdminDto productAdminDto = new ProductAdminDto();
         productAdminDto.setProducts(productRepository.findAll());
         productAdminDto.setPossibleCategories(categoryRepository.findAll());
@@ -42,7 +59,7 @@ public class ProductService {
         ProductAdminDto productAdminDto = new ProductAdminDto();
         Pageable firstPage = PageRequest.of(0, 5, Sort.by("name").ascending());
         productAdminDto.setProducts(
-                productRepository.findWithPageable(firstPage)
+                productRepository.findEnabledWithPageable(firstPage)
         );
         productAdminDto.setPossibleCategories(categoryRepository.findAll());
         return productAdminDto;

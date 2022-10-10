@@ -6,6 +6,7 @@ import { environment } from 'src/environments/environment';
 import { CategoryDto } from '../dto/categpry-dto';
 import { ProductAdminDto } from '../dto/product-admin-dto';
 import { ProductDetailsDto } from '../dto/product-details-dto';
+import { ProductSearchDto } from '../dto/product-search-dto';
 import { SaveCategoryDto } from '../dto/save-category-dto';
 import { SaveProductDto } from '../dto/save-product-dto';
 import { UserSelectors } from '../store/user/user.selectors';
@@ -59,12 +60,37 @@ export class ApiService {
     return this.http.get(environment.api + '/user/logout')
   }
 
-  getAllProducts(): Observable<ProductAdminDto> {
-    return this.http.get(environment.api + '/products') as Observable<any>
+  searchAllProducts(productSearch: ProductSearchDto): Observable<ProductAdminDto> {
+    return this.http.post(environment.api + '/products', productSearch,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  getAllAdminProducts(): Observable<ProductAdminDto> {
+    return this.http.get(environment.api + '/admin/products', {
+      responseType: 'json',
+      withCredentials: true,
+      headers: new HttpHeaders({
+        Authorization:
+          `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+        ['Content-type']: 'application/json',
+        ['Response-type']: 'application/json',
+        ['X-Requested-With']: 'XMLHttpRequest'
+      })
+    }) as Observable<any>
   }
 
   addProduct(product: SaveProductDto) {
-    return this.http.post(environment.api + '/add/product', product,
+    return this.http.post(environment.api + '/admin/product', product,
       {
         responseType: 'json',
         withCredentials: true,
@@ -92,7 +118,7 @@ export class ApiService {
   }
 
   updateProduct(product: ProductDetailsDto) {
-    return this.http.put(environment.api + '/update/product', product,
+    return this.http.put(environment.api + '/admin/product', product,
       {
         responseType: 'json',
         withCredentials: true,
@@ -107,7 +133,7 @@ export class ApiService {
   }
 
   deleteProduct(productId: number) {
-    return this.http.delete(`${environment.api}/delete/product/${productId}`,
+    return this.http.delete(`${environment.api}/admin/product/${productId}`,
       {
         responseType: 'json',
         withCredentials: true,
@@ -126,7 +152,7 @@ export class ApiService {
   }
 
   addCategory(category: SaveCategoryDto) {
-    return this.http.post(environment.api + '/add/category', category,
+    return this.http.post(environment.api + '/admin/category', category,
       {
         responseType: 'json',
         withCredentials: true,
@@ -154,7 +180,7 @@ export class ApiService {
   }
 
   updateCategory(category: CategoryDto) {
-    return this.http.put(environment.api + '/update/category', category,
+    return this.http.put(environment.api + '/admin/category', category,
       {
         responseType: 'json',
         withCredentials: true,
@@ -168,7 +194,7 @@ export class ApiService {
   }
 
   deleteCategory(categoryId: number) {
-    return this.http.delete(`${environment.api}/delete/category/${categoryId}`,
+    return this.http.delete(`${environment.api}/admin/category/${categoryId}`,
       {
         responseType: 'json',
         withCredentials: true,

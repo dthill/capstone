@@ -6,6 +6,7 @@ import { HomeComponent } from './home.component';
 import { ReactiveFormsModule } from '@angular/forms';
 import { ProductCardModule } from 'src/app/components/product-card/product-card.module';
 import { CarouselModule } from 'ngx-bootstrap/carousel';
+import { ProductSearchModule } from 'src/app/components/product-search/product-search.module';
 
 
 @NgModule({
@@ -15,7 +16,7 @@ import { CarouselModule } from 'ngx-bootstrap/carousel';
   imports: [
     CommonModule,
     HomeRoutingModule,
-    ReactiveFormsModule,
+    ProductSearchModule,
     CarouselModule.forRoot(),
     ProductCardModule
   ]

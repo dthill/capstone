@@ -26,17 +26,17 @@ public class CategoryController {
         return categoryService.getCategory(id);
     }
 
-    @PostMapping("/add/category")
+    @PostMapping("/admin/category")
     public List<Category> addCategory(@Validated @RequestBody SaveCategoryDto saveCategoryDto) {
         return categoryService.addCategory(saveCategoryDto);
     }
 
-    @PutMapping("/update/category")
+    @PutMapping("/admin/category")
     public Category updateProduct(@Validated @RequestBody Category category) {
         return categoryService.updateCategory(category);
     }
 
-    @DeleteMapping("/delete/category/{id}")
+    @DeleteMapping("/admin/category/{id}")
     public List<Category> delete(@Validated @PathVariable Long id) {
         return categoryService.deleteCategory(id);
     }

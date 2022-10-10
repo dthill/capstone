@@ -1,22 +1,4 @@
-<form class="form-group" (submit)="search($event)">
-    <div class="row align-items-center">
-        <div class="col-12 col-sm">
-            <label for="search mb-1 mb-sm-0">Search Products</label>
-        </div>
-        <div class="col-12 col-sm-8">
-            <input
-                id="search"
-                class="form-control w-100"
-                type="text"
-                placeholder="search products"
-                [formControl]="searchControl"
-            />
-        </div>
-        <div class="col mt-2 mt-sm-0">
-            <button class="btn btn-primary w-100">Search</button>
-        </div>
-    </div>
-</form>
+<app-product-search [categories]="categories$ | async"></app-product-search>
 <main class="row my-4">
     <div class="col-12 mb-4">
         <carousel [isAnimated]="true">

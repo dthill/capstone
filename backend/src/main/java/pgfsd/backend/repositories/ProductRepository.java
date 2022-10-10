@@ -13,7 +13,13 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findAll();
 
-    @Query("select p from Product p")
-    public List<Product> findWithPageable(Pageable pageable);
+    @Query("SELECT p FROM Product p WHERE p.enabled = true")
+    public List<Product> findEnabledWithPageable(Pageable pageable);
 
+    @Query("SELECT p FROM Product p WHERE p.enabled = true AND p.name LIKE ?1")
+    public List<Product> searchAllEnabledProducts(String searchTerm);
+
+    @Query("SELECT DISTINCT p FROM Product p JOIN p.categories c " +
+            "WHERE p.enabled = true AND p.name LIKE ?1 AND c.id = ?2")
+    public List<Product> searchAllEnabledProductsAndCategories(String searchTerm, Long categoryId);
 }

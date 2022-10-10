@@ -22,23 +22,14 @@ export class HomeComponent implements OnInit {
   topProducts$!: Observable<ProductDetailsDto[]>
 
   routeConstants = routeConstants;
-  searchControl = new FormControl('')
 
-  constructor(private store: Store, private router: Router) { }
+  constructor(private store: Store) { }
 
   ngOnInit(): void {
     this.store.dispatch(new LoadHomeAction())
   }
 
-  search(event: Event) {
-    event.preventDefault();
-    this.router.navigate([routeConstants.products], {
-      queryParamsHandling: 'merge',
-      queryParams: {
-        [routeParams.productSearch]: this.searchControl.value || null
-      }
-    })
-  }
+
 
 
 }

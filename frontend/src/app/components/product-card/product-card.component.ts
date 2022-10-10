@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
 import { routeConstants, routeParams } from 'src/app/constants/route.constants';
 import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { displayPrice } from 'src/app/utilities/price.utilities';
 
 @Component({
   selector: 'app-product-card',
@@ -21,7 +22,7 @@ export class ProductCardComponent implements OnInit {
 
 
   displayPrice(price: number) {
-    return price / 100
+    return displayPrice(price)
   }
 
   addToCart() {

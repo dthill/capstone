@@ -10,6 +10,7 @@ import { ProductDetailsState } from './product-details/product-details.state';
 import { CategoryAdminState } from './category-admin/category-admin.state';
 import { CategoryDetailsState } from './category-details/category-details.state';
 import { HomeState } from './home/home.state';
+import { ProductsState } from './products/products.state';
 
 const states = [
   UserState,
@@ -17,7 +18,8 @@ const states = [
   ProductDetailsState,
   CategoryAdminState,
   CategoryDetailsState,
-  HomeState
+  HomeState,
+  ProductsState
 ]
 
 

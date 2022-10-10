@@ -34,7 +34,7 @@ export class ProductAdminState {
   @Action(LoadAllProductsAction)
   loadAll(ctx: StateContext<ProductAdminStateModel>) {
     ctx.patchState({ loading: true })
-    return this.apiService.getAllProducts().pipe(
+    return this.apiService.getAllAdminProducts().pipe(
       tap(({ products, possibleCategories }) => {
         ctx.patchState({ products, possibleCategories, loading: false, error: false })
       }))

@@ -7,6 +7,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { StoreModuleModule } from './store/store-module.module'
 import { ExceptionHandlerService } from './services/exception-handler.service';
 import { ProductCardComponent } from './components/product-card/product-card.component';
+import { ProductSearchComponent } from './components/product-search/product-search.component';
 
 @NgModule({
   declarations: [

@@ -1,13 +1,8 @@
 <article class="card p-4">
-    <a
-        [routerLink]="[routeConstants.products]"
-        ueryParamsHandling="merge"
-        [queryParams]="{ pid: product.id }"
-        class="d-block w-100 btn p-0"
-    >
+    <a [routerLink]="[routeConstants.products, product.id]" class="d-block w-100 btn p-0">
         <img class="d-block w-100" [src]="product.imageUrl" [alt]="product.name" />
         <h5 class="d-block w-100 mt-2 text-start">{{ product.name }}</h5>
     </a>
-    <p>${{ displayPrice(product.price) }}</p>
+    <p>{{ displayPrice(product.price) }}</p>
     <button (click)="addToCart()" class="btn btn-secondary">Add to cart</button>
 </article>
