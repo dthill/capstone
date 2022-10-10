@@ -11,8 +11,16 @@ export class ProductDetailsStateModel {
   error!: boolean;
 }
 
-const defaults = {
-  product: {},
+const defaults: ProductDetailsStateModel = {
+  product: {
+    id: 0,
+    name: '',
+    description: '',
+    price: 0,
+    enabled: true,
+    categoryIds: [],
+    possibleCategories: [],
+  },
   loading: false,
   error: false
 };
@@ -30,7 +38,7 @@ export class ProductDetailsState {
   load(ctx: StateContext<ProductDetailsStateModel>, { productId }: LoadProductDetailsAction) {
     ctx.patchState({ loading: true })
     return this.apiService.getProductDetails(productId).pipe(tap(response => {
-      ctx.patchState({ loading: false, error: false, product: response })
+      ctx.patchState({ loading: false, error: false, product: response as any })
     }))
   }
 

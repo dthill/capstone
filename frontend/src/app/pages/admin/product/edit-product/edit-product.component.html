@@ -1,23 +1,74 @@
 <form (submit)="submit($event)" class="card form-group p-3" [formGroup]="editProductForm">
-  <h3>Edit product</h3>
-  <label class="form-label" for="id">Id</label>
-  <input required autocomplete="off" class="form-control" id="id" type="text" formControlName="id">
-  <label class="form-label" for="name">Name</label>
-  <input required autocomplete="off" class="form-control" id="name" type="text" formControlName="name">
-  <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
-    This field is required and has a min length of 3 and a max length of 100 chars
-  </p>
-  <label class="form-label" for="description">Description</label>
-  <textarea required autocomplete="off" class="form-control" id="description" type="text" formControlName="description">
-  </textarea>
-  <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
-    This field is required and has a min length of 3 and a max length of 200 chars
-  </p>
-  <label class="form-label" for="price">Price (in cents)</label>
-  <input required autocomplete="off" class="form-control" id="price" type="tel" formControlName="price">
-  <p *ngIf="price?.touched && price?.invalid" class="text-danger mt-1">
-    This field is required, can only contain integers and needs to be greater then 1.
-  </p>
-  <button [disabled]="editProductForm.invalid" class="btn btn-primary mt-3" type="submit">Save</button>
-  <p *ngIf="error$ | async" class="alert alert-danger mt-2">An error occurred please try again.</p>
+    <h3>Edit product</h3>
+    <label class="form-label" for="id">Id</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="id"
+        type="text"
+        formControlName="id"
+    />
+    <label class="form-label" for="name">Name</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="name"
+        type="text"
+        formControlName="name"
+    />
+    <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 100 chars
+    </p>
+    <label class="form-label" for="description">Description</label>
+    <textarea
+        required
+        autocomplete="off"
+        class="form-control"
+        id="description"
+        type="text"
+        formControlName="description"
+    >
+    </textarea>
+    <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 200 chars
+    </p>
+    <label class="form-label" for="price">Price (in cents)</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="price"
+        type="tel"
+        formControlName="price"
+    />
+    <p *ngIf="price?.touched && price?.invalid" class="text-danger mt-1">
+        This field is required, can only contain integers and needs to be greater then 1.
+    </p>
+    <div class="form-check my-2">
+        <input class="form-check-input" type="checkbox" id="enabled" formControlName="enabled" />
+        <label class="form-check-label" for="enabled">Enabled</label>
+    </div>
+    <label class="form-label" for="categpry">Categories (CTRL click for multiple)</label>
+    <select class="form-control" id="categpry" [multiple]="true" formControlName="categoryIds">
+        <option *ngFor="let category of possibleCategories$ | async" [value]="category.id">
+            {{ category.name }}
+        </option>
+    </select>
+    <label class="form-label" for="imageUrl">Image Url</label>
+    <input
+        autocomplete="off"
+        class="form-control"
+        id="imageUrl"
+        type="text"
+        formControlName="imageUrl"
+    />
+    <img class="preview mt-3" *ngIf="imageUrl?.value" [src]="imageUrl?.value" alt="preview image" />
+    <button [disabled]="editProductForm.invalid" class="btn btn-primary mt-3" type="submit">
+        Save
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">
+        An error occurred please try again.
+    </p>
 </form>

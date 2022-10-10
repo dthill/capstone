@@ -1,0 +1,18 @@
+.img-slide {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+}
+
+.slide-container {
+  position: relative;
+}
+
+.slide-title {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: black;
+}

@@ -1,22 +1,27 @@
 <h2 class="text-center">Products</h2>
 <div class="card p-3 my-3">
-  <div class="row fw-bold pb-3 border-bottom">
-    <div class="col-2 col-sm-1">Id</div>
-    <div class="col-3 col-sm-3">Name</div>
-    <div class="col-4 col-sm-4">Description</div>
-    <div class="col-2 col-sm-2">$</div>
-    <div class="col-1 col-sm-1"></div>
-  </div>
-  <div class="row border-bottom" *ngFor="let product of products$ | async; trackBy: trackByFn">
-      <div class="col-2 col-sm-1 fw-bold">{{product.id}}</div>
-      <div class="col-3 col-sm-3">{{product.name}}</div>
-      <div class="col-4 col-sm-4">{{product.description}}</div>
-      <div class="col-2 col-sm-2">{{product.price}}</div>
-      <div class="col-1 col-sm-1">
-        <button class="btn" [routerLink]="[product.id]"><i class="bi-pencil"></i></button>
-        <button class="btn" (click)="delete(product)"><i class="bi-trash"></i></button>
-      </div>
-  </div>
+    <div class="row fw-bold pb-3 border-bottom">
+        <div class="col-2 col-sm-1">Id</div>
+        <div class="col-3 col-sm-3">Name</div>
+        <div class="col-4 col-sm-4">Description</div>
+        <div class="col-2 col-sm-2">$</div>
+        <div class="col-1 col-sm-1"></div>
+    </div>
+    <div class="row border-bottom" *ngFor="let product of products$ | async; trackBy: trackByFn">
+        <div class="col-2 col-sm-1 fw-bold">
+            {{ product.id }}
+            <i *ngIf="!product.enabled" class="bi-x-octagon-fill"></i>
+        </div>
+        <div class="col-3 col-sm-3">
+            {{ product.name }}
+        </div>
+        <div class="col-4 col-sm-4">{{ product.description }}</div>
+        <div class="col-2 col-sm-2">{{ product.price }}</div>
+        <div class="col-1 col-sm-1">
+            <button class="btn" [routerLink]="[product.id]"><i class="bi-pencil"></i></button>
+            <button class="btn" (click)="delete(product)"><i class="bi-trash"></i></button>
+        </div>
+    </div>
 </div>
 
 <app-add-product></app-add-product>

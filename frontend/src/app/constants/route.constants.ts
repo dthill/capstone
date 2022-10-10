@@ -4,9 +4,13 @@ export const routeConstants = {
   register: 'register',
   registerSuccess: 'success',
   admin: 'admin',
-  productAdmin: 'product'
+  productAdmin: 'product',
+  categoryAdmin: 'category',
+  products: 'products'
 }
 
 export const routeParams = {
-  productId: 'pid'
+  productId: 'pid',
+  categoryId: 'cid',
+  productSearch: 's'
 }

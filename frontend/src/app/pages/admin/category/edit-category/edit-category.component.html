@@ -1,0 +1,44 @@
+<form (submit)="submit($event)" class="card form-group p-3" [formGroup]="editCategoryForm">
+    <h3>Edit category</h3>
+    <label class="form-label" for="id">Id</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="id"
+        type="text"
+        formControlName="id"
+    />
+
+    <label class="form-label" for="name">Name</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="name"
+        type="text"
+        formControlName="name"
+    />
+    <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 100 chars
+    </p>
+    <label class="form-label" for="description">Description</label>
+    <textarea
+        required
+        autocomplete="off"
+        class="form-control"
+        id="description"
+        type="text"
+        formControlName="description"
+    >
+    </textarea>
+    <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 200 chars
+    </p>
+    <button [disabled]="editCategoryForm.invalid" class="btn btn-primary mt-3" type="submit">
+        Update
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">
+        An error occurred please try again.
+    </p>
+</form>

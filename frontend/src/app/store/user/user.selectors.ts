@@ -9,6 +9,16 @@ export class UserSelectors {
   }
 
   @Selector([UserState])
+  public static email(state: UserStateModel): string {
+    return state.user.email as string
+  }
+
+  @Selector([UserState])
+  public static password(state: UserStateModel): string {
+    return state.user.password as string
+  }
+
+  @Selector([UserState])
   public static loggedIn(state: UserStateModel): boolean {
     return !!state.user.email
   }

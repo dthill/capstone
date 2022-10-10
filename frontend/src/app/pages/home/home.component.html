@@ -1,1 +1,70 @@
-<p>home works!</p>
+<form class="form-group" (submit)="search($event)">
+    <div class="row align-items-center">
+        <div class="col-12 col-sm">
+            <label for="search mb-1 mb-sm-0">Search Products</label>
+        </div>
+        <div class="col-12 col-sm-8">
+            <input
+                id="search"
+                class="form-control w-100"
+                type="text"
+                placeholder="search products"
+                [formControl]="searchControl"
+            />
+        </div>
+        <div class="col mt-2 mt-sm-0">
+            <button class="btn btn-primary w-100">Search</button>
+        </div>
+    </div>
+</form>
+<main class="row my-4">
+    <div class="col-12 mb-4">
+        <carousel [isAnimated]="true">
+            <slide>
+                <div class="slide-container">
+                    <img
+                        class="img-slide"
+                        src="../../../assets/pictures/home1.webp"
+                        alt="first slide"
+                    />
+                    <h1 class="slide-title">Medicare</h1>
+                </div>
+            </slide>
+            <slide>
+                <div class="slide-container">
+                    <img
+                        class="img-slide"
+                        src="../../../assets/pictures/home2.jpg"
+                        alt="seconde slide"
+                    />
+                    <h1 class="slide-title">Medicare</h1>
+                </div>
+            </slide>
+        </carousel>
+    </div>
+    <div class="col-5 col-sm-3">
+        <h3 class="mb-4">&nbsp;</h3>
+        <ul class="list-group">
+            <li *ngFor="let category of categories$ | async" class="list-group-item p-1">
+                <a
+                    class="btn"
+                    [routerLink]="[routeConstants.products]"
+                    queryParamsHandling="merge"
+                    [queryParams]="{ cid: category.id }"
+                >
+                    {{ category.name }}
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="col-7 col-sm-9">
+        <h3 class="mb-4">Top Products</h3>
+        <div class="row g-3">
+            <app-product-card
+                *ngFor="let topProduct of topProducts$ | async"
+                [product]="topProduct"
+                class="col-12 col-sm-6 col-md-4 col-lg-3"
+            ></app-product-card>
+        </div>
+    </div>
+</main>

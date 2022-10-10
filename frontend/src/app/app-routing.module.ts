@@ -5,6 +5,7 @@ import { AdminGuard } from './guards/admin.guard';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
+  { path: routeConstants.products, loadChildren: () => import('./pages/products/products.module').then(m => m.ProductsModule) },
   { path: routeConstants.register, loadChildren: () => import('./pages/register/register.module').then(m => m.RegisterModule) },
   { path: routeConstants.login, loadChildren: () => import('./pages/login/login.module').then(m => m.LoginModule) },
   {
@@ -13,7 +14,6 @@ const routes: Routes = [
     canActivate: [AuthGuard, AdminGuard]
   },
   { path: routeConstants.home, loadChildren: () => import('./pages/home/home.module').then(m => m.HomeModule) },
-
 ];
 
 @NgModule({
