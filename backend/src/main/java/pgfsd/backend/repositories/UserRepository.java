@@ -6,6 +6,7 @@ import pgfsd.backend.entities.User;
 
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {

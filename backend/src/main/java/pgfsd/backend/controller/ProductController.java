@@ -3,6 +3,7 @@ package pgfsd.backend.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import pgfsd.backend.dto.ProductAdminDto;
 import pgfsd.backend.dto.ProductDetailsDto;
 import pgfsd.backend.dto.SaveProductDto;
 import pgfsd.backend.entities.Product;
@@ -19,13 +20,18 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @GetMapping("/products/top")
+    public ProductAdminDto getTopProducts() {
+        return this.productService.getTopProducts();
+    }
+
     @GetMapping("/products")
-    public List<Product> allProducts() {
+    public ProductAdminDto allProducts() {
         return this.productService.getAllProducts();
     }
 
     @GetMapping("/products/{id}")
-    public Product productById(@Validated @PathVariable Long id) {
+    public ProductDetailsDto productById(@Validated @PathVariable Long id) {
         return this.productService.getProduct(id);
     }
 
@@ -39,8 +45,8 @@ public class ProductController {
         return this.productService.updateProduct(productDetailsDto);
     }
 
-    @DeleteMapping("/delete/product")
-    public List<Product> delete(@Validated @RequestBody ProductDetailsDto productDetailsDto) {
-        return this.productService.deleteProduct(productDetailsDto);
+    @DeleteMapping("/delete/product/{id}")
+    public List<Product> delete(@Validated @PathVariable Long id) {
+        return this.productService.deleteProduct(id);
     }
 }

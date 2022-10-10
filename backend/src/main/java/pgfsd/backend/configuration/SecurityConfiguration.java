@@ -29,7 +29,9 @@ public class SecurityConfiguration {
                         "/user/logout",
                         "/user/register",
                         "/products",
-                        "/products/**"
+                        "/products/**",
+                        "/categories",
+                        "/categories/**"
                 ).permitAll()
                 .anyRequest().authenticated()
                 .and()

@@ -1,6 +1,8 @@
 package pgfsd.backend.repositories;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import pgfsd.backend.entities.Product;
 
@@ -11,5 +13,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 
     List<Product> findAll();
 
+    @Query("select p from Product p")
+    public List<Product> findWithPageable(Pageable pageable);
 
 }

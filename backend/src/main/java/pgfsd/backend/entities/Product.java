@@ -9,7 +9,9 @@ import javax.persistence.*;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -29,6 +31,10 @@ public class Product {
     @NotNull
     @Min(1)
     private Long price;
+    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.DETACH)
+    private List<Category> categories;
+    private Boolean enabled = true;
+    private String imageUrl;
 
     @Override
     public boolean equals(Object o) {

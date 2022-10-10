@@ -16,13 +16,15 @@ import pgfsd.backend.services.UserService;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/user")
 public class UserController {
 
     private final UserService userService;
-    private Logger logger = LoggerFactory.getLogger(UserController.class);
+    private final Logger logger = LoggerFactory.getLogger(UserController.class);
 
     @Autowired
     public UserController(UserService userService) {
@@ -50,6 +52,12 @@ public class UserController {
     public UserDto registerUser(@Validated @RequestBody UserRegistrationDto userRegistrationDto) {
         logger.info("controller: /register params: " + userRegistrationDto.toString());
         return userService.registerUser(userRegistrationDto);
+    }
+
+    @GetMapping("/users/{email}")
+    public List<UserDto> users(@PathVariable String email) {
+        logger.info("controller: /users ");
+        return userService.getAllUsers(email);
     }
 
     @ExceptionHandler(BadCredentialsException.class)

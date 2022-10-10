@@ -12,6 +12,8 @@ import pgfsd.backend.entities.User;
 import pgfsd.backend.repositories.UserRepository;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService implements UserDetailsService {
@@ -22,11 +24,17 @@ public class UserService implements UserDetailsService {
         this.userRepository = userRepository;
     }
 
-    public List<User> getAllUsers(String username) {
+    public List<UserDto> getAllUsers(String username) {
+        List<User> users;
         if (username == null || username.equals("")) {
-            return userRepository.findAll();
+            users =  userRepository.findAll();
+        } else {
+            users = userRepository.findAllByUsernameContainingIgnoreCase(username);
         }
-        return userRepository.findAllByUsernameContainingIgnoreCase(username);
+        return users
+                .stream()
+                .map(user -> new UserDto(user.getUsername(), user.getIsAdmin()))
+                .collect(Collectors.toList());
     }
 
     @Transactional
