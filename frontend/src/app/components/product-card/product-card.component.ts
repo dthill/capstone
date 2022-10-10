@@ -1,6 +1,10 @@
 import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
 import { routeConstants, routeParams } from 'src/app/constants/route.constants';
 import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { AddToCartAction } from 'src/app/store/add-to-cart/add-to-cart.actions';
+import { UserSelectors } from 'src/app/store/user/user.selectors';
 import { displayPrice } from 'src/app/utilities/price.utilities';
 
 @Component({
@@ -15,7 +19,10 @@ export class ProductCardComponent implements OnInit {
   @Input()
   product!: ProductDetailsDto;
 
-  constructor() { }
+  @Select(UserSelectors.loggedIn)
+  loggedIn$!: Observable<boolean>;
+
+  constructor(private store: Store) { }
 
   ngOnInit(): void {
   }
@@ -26,6 +33,6 @@ export class ProductCardComponent implements OnInit {
   }
 
   addToCart() {
-    console.log(this.product)
+    this.store.dispatch(new AddToCartAction(this.product))
   }
 }

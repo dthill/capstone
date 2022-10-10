@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import pgfsd.backend.constants.UserRoleConstants;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
@@ -33,6 +34,10 @@ public class SecurityConfiguration {
                         "/categories",
                         "/categories/**"
                 ).permitAll()
+                .antMatchers(
+
+                        "/admin/**"
+                ).hasAuthority(UserRoleConstants.ADMIN)
                 .anyRequest().authenticated()
                 .and()
                 .logout().disable()

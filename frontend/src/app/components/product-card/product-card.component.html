@@ -4,5 +4,14 @@
         <h5 class="d-block w-100 mt-2 text-start">{{ product.name }}</h5>
     </a>
     <p>{{ displayPrice(product.price) }}</p>
-    <button (click)="addToCart()" class="btn btn-secondary">Add to cart</button>
+    <button
+        *ngIf="loggedIn$ | async; else loggedOut"
+        (click)="addToCart()"
+        class="btn btn-secondary"
+    >
+        Add to cart
+    </button>
+    <ng-template #loggedOut>
+        <button [disabled]="true" class="btn btn-secondary">Login to add to cart</button>
+    </ng-template>
 </article>

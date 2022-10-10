@@ -219,4 +219,33 @@ export class ApiService {
         })
       }) as Observable<any>
   }
+
+  addToCart(productId: number) {
+    return this.http.post(environment.api + '/cart', productId,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  getCart(): Observable<ProductAdminDto> {
+    return this.http.get(environment.api + '/cart', {
+      responseType: 'json',
+      withCredentials: true,
+      headers: new HttpHeaders({
+        Authorization:
+          `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+        ['Content-type']: 'application/json',
+        ['Response-type']: 'application/json',
+        ['X-Requested-With']: 'XMLHttpRequest'
+      })
+    }) as Observable<any>
+  }
 }

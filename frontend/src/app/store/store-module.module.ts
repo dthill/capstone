@@ -11,6 +11,7 @@ import { CategoryAdminState } from './category-admin/category-admin.state';
 import { CategoryDetailsState } from './category-details/category-details.state';
 import { HomeState } from './home/home.state';
 import { ProductsState } from './products/products.state';
+import { AddToCartState } from './add-to-cart/add-to-cart.state';
 
 const states = [
   UserState,
@@ -19,7 +20,8 @@ const states = [
   CategoryAdminState,
   CategoryDetailsState,
   HomeState,
-  ProductsState
+  ProductsState,
+  AddToCartState
 ]
 
 

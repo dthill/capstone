@@ -6,6 +6,16 @@
         <h2 class="mb-4">{{ product.name }}</h2>
         <p class="mb-4">{{ product.description }}</p>
         <p class="mb-3 fw-bold">{{ displayPrice(product.price) }}</p>
-        <button (click)="addToCart(product)" class="btn btn-secondary w-100">Add to cart</button>
+        <button
+            *ngIf="loggedIn$ | async; else loggedOut"
+            (click)="addToCart(product)"
+            class="btn btn-secondary w-100"
+            [disabled]="loading$ | async"
+        >
+            Add to cart
+        </button>
+        <ng-template #loggedOut>
+            <button [disabled]="true" class="btn btn-secondary w-100">Login to add to cart</button>
+        </ng-template>
     </div>
 </main>
