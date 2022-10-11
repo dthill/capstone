@@ -1,1 +1,29 @@
-<p>cart works!</p>
+<h1 class="text-center">Cart</h1>
+<main class="card p-2 p-sm-4 m-2 m-sm-4">
+    <ng-container *ngIf="cart$ | async as cart">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Product ID</th>
+                    <th scope="col">Product Name</th>
+                    <th scope="col">Price</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let product of cart.products">
+                    <th scope="row">{{ product.id }}</th>
+                    <td>{{ product.name }}</td>
+                    <td>{{ displayPrice(product.price) }}</td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="table-info">
+                    <th scope="row">Total</th>
+                    <td></td>
+                    <th scope="col">{{ getTotal(cart.products) }}</th>
+                </tr>
+            </tfoot>
+        </table>
+        <button (click)="checkout()" class="btn btn-secondary w-100">Checkout</button>
+    </ng-container>
+</main>

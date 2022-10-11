@@ -4,9 +4,9 @@ import { Select, Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
 import { routeParams } from 'src/app/constants/route.constants';
 import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
-import { AddToCartAction } from 'src/app/store/add-to-cart/add-to-cart.actions';
-import { AddToCartSelectors } from 'src/app/store/add-to-cart/add-to-cart.selectors';
-import { AddToCartState } from 'src/app/store/add-to-cart/add-to-cart.state';
+import { AddToCartAction } from 'src/app/store/cart/cart.actions';
+import { CartSelectors } from 'src/app/store/cart/cart.selectors';
+import { CartState } from 'src/app/store/cart/cart.state';
 import { LoadProductDetailsAction } from 'src/app/store/product-details/product-details.actions';
 import { ProductDetailsSelectors } from 'src/app/store/product-details/product-details.selectors';
 import { UserSelectors } from 'src/app/store/user/user.selectors';
@@ -25,7 +25,7 @@ export class ProductDetailsComponent implements OnInit {
   @Select(UserSelectors.loggedIn)
   loggedIn$!: Observable<boolean>
 
-  @Select(AddToCartSelectors.loading)
+  @Select(CartSelectors.loading)
   loading$!: Observable<boolean>
 
   constructor(private store: Store, private activatedRoute: ActivatedRoute) { }

@@ -7,7 +7,8 @@ export const routeConstants = {
   productAdmin: 'product',
   categoryAdmin: 'category',
   products: 'products',
-  cart: 'cart'
+  cart: 'cart',
+  checkout: 'checlout'
 }
 
 export const routeParams = {

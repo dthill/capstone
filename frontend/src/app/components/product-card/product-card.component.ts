@@ -3,7 +3,7 @@ import { Select, Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
 import { routeConstants, routeParams } from 'src/app/constants/route.constants';
 import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
-import { AddToCartAction } from 'src/app/store/add-to-cart/add-to-cart.actions';
+import { AddToCartAction } from 'src/app/store/cart/cart.actions';
 import { UserSelectors } from 'src/app/store/user/user.selectors';
 import { displayPrice } from 'src/app/utilities/price.utilities';
 

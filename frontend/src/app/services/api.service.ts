@@ -7,6 +7,7 @@ import { CategoryDto } from '../dto/categpry-dto';
 import { ProductAdminDto } from '../dto/product-admin-dto';
 import { ProductDetailsDto } from '../dto/product-details-dto';
 import { ProductSearchDto } from '../dto/product-search-dto';
+import { PurchaseDto } from '../dto/purchase-dto';
 import { SaveCategoryDto } from '../dto/save-category-dto';
 import { SaveProductDto } from '../dto/save-product-dto';
 import { UserSelectors } from '../store/user/user.selectors';
@@ -235,7 +236,7 @@ export class ApiService {
       })
   }
 
-  getCart(): Observable<ProductAdminDto> {
+  getCart(): Observable<PurchaseDto> {
     return this.http.get(environment.api + '/cart', {
       responseType: 'json',
       withCredentials: true,
