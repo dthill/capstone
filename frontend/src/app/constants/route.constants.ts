@@ -6,7 +6,8 @@ export const routeConstants = {
   admin: 'admin',
   productAdmin: 'product',
   categoryAdmin: 'category',
-  products: 'products'
+  products: 'products',
+  cart: 'cart'
 }
 
 export const routeParams = {

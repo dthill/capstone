@@ -13,9 +13,14 @@
                         <a class="nav-link" [routerLink]="[routeConstants.register]"> Register </a>
                     </li>
                 </ng-container>
-                <li *ngIf="loggedIn$ | async" class="nav-item">
-                    <button class="btn nav-link" (click)="logout()">Logout</button>
-                </li>
+                <ng-container *ngIf="loggedIn$ | async">
+                    <li class="nav-item">
+                        <a class="nav-link" [routerLink]="[routeConstants.cart]">Cart</a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn nav-link" (click)="logout()">Logout</button>
+                    </li>
+                </ng-container>
                 <li *ngIf="isAdmin$ | async" class="nav-item">
                     <a class="nav-link" [routerLink]="[routeConstants.admin]">Admin</a>
                 </li>
