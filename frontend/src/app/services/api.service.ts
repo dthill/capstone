@@ -4,6 +4,7 @@ import { Store } from '@ngxs/store';
 import { Observable } from 'rxjs';
 import { environment } from 'src/environments/environment';
 import { CategoryDto } from '../dto/categpry-dto';
+import { PaymentDto } from '../dto/payment-dto';
 import { ProductAdminDto } from '../dto/product-admin-dto';
 import { ProductDetailsDto } from '../dto/product-details-dto';
 import { ProductSearchDto } from '../dto/product-search-dto';
@@ -249,4 +250,35 @@ export class ApiService {
       })
     }) as Observable<any>
   }
+
+  deleteFromCart(productId: number): Observable<PurchaseDto> {
+    return this.http.delete(`${environment.api}/cart/${productId}`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  pay(payment: PaymentDto): Observable<PurchaseDto> {
+    return this.http.post(environment.api + '/checkout', payment,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
 }

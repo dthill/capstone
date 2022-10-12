@@ -2,7 +2,6 @@ package pgfsd.backend.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 import pgfsd.backend.dto.PaymentDto;
 import pgfsd.backend.entities.Product;
 import pgfsd.backend.entities.Purchase;
@@ -12,7 +11,9 @@ import pgfsd.backend.repositories.PurchaseRepository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class PurchaseService {
@@ -44,12 +45,14 @@ public class PurchaseService {
         return cart;
     }
 
-    public Purchase updateCart(Purchase purchase, User user) throws IllegalAccessException {
-        if(!purchase.getBuyer().getId().equals(user.getId())) {
-            throw new IllegalAccessException("user not allowed");
-        }
-        if(purchase.getPurchasedOn() != null || purchase.getCreditCardNumber() != null){
-            throw new IllegalStateException("update finished purchase not allowed");
+    public Purchase deleteFromCart(Long productId, User user) throws IllegalAccessException {
+        Purchase purchase = getCart(user);
+        List<Product> products = purchase.getProducts();
+        for(int i =0; i < products.size(); i++){
+            if(Objects.equals(products.get(i).getId(), productId)){
+                products.remove(i);
+                break;
+            }
         }
         return purchaseRepository.save(purchase);
     }

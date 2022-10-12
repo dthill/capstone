@@ -1,1 +1,38 @@
-<h1 class="text-center">Checkout</h1>
+<main class="card m-4 p-4">
+    <h1 class="text-center">Checkout</h1>
+    <h2 *ngIf="isEmptyCart$ | async; else cartNotEmpty" class="text-danger">Nothing in Cart</h2>
+    <ng-template #cartNotEmpty>
+        <h2 class="mb-3">
+            Total to pay:
+            <span class="fw-bold">{{ total$ | async }}</span>
+        </h2>
+    </ng-template>
+    <form (submit)="payNow($event)" class="form-group" [formGroup]="checkoutForm">
+        <label class="form-label" for="card">
+            Mock Payment Card <br />
+            (please do not enter any real credit or debit cards)
+        </label>
+        <input class="form-control mb-2" type="text" id="card" formControlName="card" />
+        <p *ngIf="card?.touched && card?.invalid" class="text-danger">
+            This field is required and can only contain numbers.
+        </p>
+        <label class="form-label" for="address">Address</label>
+        <textarea
+            class="form-control"
+            name="address"
+            id="address"
+            rows="5"
+            formControlName="address"
+        ></textarea>
+        <p *ngIf="address?.touched && address?.invalid" class="text-danger">
+            This field is required.
+        </p>
+        <button
+            [disabled]="checkoutForm.invalid || (isEmptyCart$ | async) || (loading$ | async)"
+            class="btn btn-secondary w-100 mt-3"
+            type="submit"
+        >
+            Pay Now
+        </button>
+    </form>
+</main>

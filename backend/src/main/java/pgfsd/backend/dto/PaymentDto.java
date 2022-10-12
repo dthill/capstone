@@ -12,7 +12,6 @@ import javax.validation.constraints.NotNull;
 @NoArgsConstructor
 public class PaymentDto {
     @NotNull
-    @Min(10000000L)
     private Long creditCardNumber;
     @NotNull
     private String address;

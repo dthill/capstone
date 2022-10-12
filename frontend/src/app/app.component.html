@@ -5,24 +5,24 @@
             <ul class="navbar-nav">
                 <ng-container *ngIf="!(loggedIn$ | async)">
                     <li class="nav-item">
-                        <a class="nav-link align-self-end" [routerLink]="[routeConstants.login]">
-                            Login
-                        </a>
+                        <a class="btn nav-link" [routerLink]="[routeConstants.login]"> Login </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" [routerLink]="[routeConstants.register]"> Register </a>
+                        <a class="btn nav-link" [routerLink]="[routeConstants.register]">
+                            Register
+                        </a>
                     </li>
                 </ng-container>
                 <ng-container *ngIf="loggedIn$ | async">
                     <li class="nav-item">
-                        <a class="nav-link" [routerLink]="[routeConstants.cart]">Cart</a>
+                        <a class="btn nav-link" [routerLink]="[routeConstants.cart]">Cart</a>
                     </li>
                     <li class="nav-item">
                         <button class="btn nav-link" (click)="logout()">Logout</button>
                     </li>
                 </ng-container>
                 <li *ngIf="isAdmin$ | async" class="nav-item">
-                    <a class="nav-link" [routerLink]="[routeConstants.admin]">Admin</a>
+                    <a class="btn nav-link" [routerLink]="[routeConstants.admin]">Admin</a>
                 </li>
             </ul>
         </div>

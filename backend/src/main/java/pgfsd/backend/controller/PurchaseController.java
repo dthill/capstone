@@ -11,9 +11,6 @@ import pgfsd.backend.entities.Purchase;
 import pgfsd.backend.entities.User;
 import pgfsd.backend.services.PurchaseService;
 
-import javax.validation.Valid;
-import java.security.Principal;
-
 @RestController
 public class PurchaseController {
 
@@ -37,10 +34,10 @@ public class PurchaseController {
         return purchaseService.getCart(user);
     }
 
-    @PutMapping("/cart")
-    public Purchase addToCart(@Validated @RequestBody Purchase purchase, Authentication authentication) throws IllegalAccessException {
+    @DeleteMapping("/cart/{productId}")
+    public Purchase deleteFromCart(@Validated @PathVariable Long productId, Authentication authentication) throws IllegalAccessException {
         User user = (User) authentication.getPrincipal();
-        return purchaseService.updateCart(purchase, user);
+        return purchaseService.deleteFromCart(productId, user);
     }
 
     @PostMapping("/checkout")

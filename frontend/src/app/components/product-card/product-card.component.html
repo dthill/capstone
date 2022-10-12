@@ -6,6 +6,7 @@
     <p>{{ displayPrice(product.price) }}</p>
     <button
         *ngIf="loggedIn$ | async; else loggedOut"
+        [disabled]="loading$ | async"
         (click)="addToCart()"
         class="btn btn-secondary"
     >

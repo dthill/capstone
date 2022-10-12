@@ -7,6 +7,7 @@
                     <th scope="col">Product ID</th>
                     <th scope="col">Product Name</th>
                     <th scope="col">Price</th>
+                    <th scope="col"></th>
                 </tr>
             </thead>
             <tbody>
@@ -14,6 +15,11 @@
                     <th scope="row">{{ product.id }}</th>
                     <td>{{ product.name }}</td>
                     <td>{{ displayPrice(product.price) }}</td>
+                    <td>
+                        <button (click)="delete(product.id)" class="btn">
+                            <i class="bi-trash"></i>
+                        </button>
+                    </td>
                 </tr>
             </tbody>
             <tfoot>
@@ -21,6 +27,7 @@
                     <th scope="row">Total</th>
                     <td></td>
                     <th scope="col">{{ getTotal(cart.products) }}</th>
+                    <td></td>
                 </tr>
             </tfoot>
         </table>

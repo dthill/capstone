@@ -5,7 +5,7 @@ import { Observable } from 'rxjs';
 import { routeConstants } from 'src/app/constants/route.constants';
 import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
 import { PurchaseDto } from 'src/app/dto/purchase-dto';
-import { LoadCartAction } from 'src/app/store/cart/cart.actions';
+import { DeleteFromCartAction, LoadCartAction } from 'src/app/store/cart/cart.actions';
 import { CartSelectors } from 'src/app/store/cart/cart.selectors';
 import { displayPrice } from 'src/app/utilities/price.utilities';
 
@@ -23,6 +23,10 @@ export class CartComponent implements OnInit {
 
   ngOnInit(): void {
     this.store.dispatch(new LoadCartAction())
+  }
+
+  delete(productId: number) {
+    this.store.dispatch(new DeleteFromCartAction(productId))
   }
 
   displayPrice(price: number): string {

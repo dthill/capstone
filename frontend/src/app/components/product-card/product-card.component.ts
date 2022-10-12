@@ -22,6 +22,9 @@ export class ProductCardComponent implements OnInit {
   @Select(UserSelectors.loggedIn)
   loggedIn$!: Observable<boolean>;
 
+  @Select(UserSelectors.loading)
+  loading$!: Observable<boolean>;
+
   constructor(private store: Store) { }
 
   ngOnInit(): void {
