@@ -7,6 +7,7 @@ import pgfsd.backend.entities.Purchase;
 import pgfsd.backend.entities.User;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 
@@ -14,4 +15,8 @@ import java.util.Optional;
 public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
 
     Optional<Purchase> findByBuyerAndPurchasedOnOrderByCreatedOnDesc (User buyer,Instant purchasedOn);
+
+    Optional<Purchase> findByBuyerAndId(User buyer, Long id);
+
+    List<Purchase> findAllByBuyerOrderByPurchasedOnDesc(User buyer);
 }

@@ -59,7 +59,7 @@ public class ProductService {
         ProductAdminDto productAdminDto = new ProductAdminDto();
         Pageable firstPage = PageRequest.of(0, 5, Sort.by("name").ascending());
         productAdminDto.setProducts(
-                productRepository.findEnabledWithPageable(firstPage)
+                productRepository.findTopProducts(firstPage)
         );
         productAdminDto.setPossibleCategories(categoryRepository.findAll());
         return productAdminDto;

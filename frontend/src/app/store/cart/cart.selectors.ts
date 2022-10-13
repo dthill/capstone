@@ -12,6 +12,11 @@ export class CartSelectors {
   }
 
   @Selector([CartState])
+  public static error(state: CartStateModel): boolean {
+    return state.error
+  }
+
+  @Selector([CartState])
   public static cart(state: CartStateModel): PurchaseDto {
     return state.cart
   }
@@ -24,5 +29,10 @@ export class CartSelectors {
   @Selector([CartState])
   public static isEmptyCart(state: CartStateModel): boolean {
     return state.cart.products.length === 0
+  }
+
+  @Selector([CartState])
+  public static purchaseId(state: CartStateModel): number {
+    return state.cart.id
   }
 }

@@ -15,6 +15,9 @@ export class CategoryComponent implements OnInit {
   @Select(CategoryAdminSelectors.categories)
   categories$!: Observable<any>
 
+  @Select(CategoryAdminSelectors.error)
+  error$!: Observable<boolean>
+
   constructor(private store: Store) { }
 
   ngOnInit(): void {

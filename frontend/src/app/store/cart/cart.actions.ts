@@ -21,3 +21,8 @@ export class PaymentAction {
   static readonly type = '[Cart] Pay cart';
   constructor(public payment: PaymentDto) { }
 }
+
+export class ClearCartStateAction {
+  static readonly type = '[Cart] Clear cart state';
+  constructor() { }
+}

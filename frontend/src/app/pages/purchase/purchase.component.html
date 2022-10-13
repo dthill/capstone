@@ -1,0 +1,34 @@
+<main class="card mx-4 mt-4 px-4 pt-4">
+    <h1 class="text-center">Purchase Confirmation</h1>
+    <p class="text-center mb-5">Thank you for your purchase</p>
+    <div *ngIf="purchase$ | async as purchase" class="row">
+        <strong class="col-6">Total:</strong>
+        <p class="col-6">{{ total$ | async }}</p>
+        <strong class="col-6">Credit card ending in:</strong>
+        <p class="col-6">____________________{{ purchase.creditCardNumber }}</p>
+        <strong class="col-6">Address:</strong>
+        <p class="col-6">{{ purchase.address }}</p>
+        <strong class="col-12">Products:</strong>
+        <div class="col-12 p-3">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Product ID</th>
+                        <th scope="col">Product Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let product of purchase.products">
+                        <th scope="row">{{ product.id }}</th>
+                        <td>{{ product.name }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div class="m-4">
+    <button [routerLink]="[routeConstants.home]" class="btn btn-secondary w-100">
+        Continue Shopping
+    </button>
+</div>

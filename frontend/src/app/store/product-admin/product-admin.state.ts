@@ -1,7 +1,7 @@
 import { Xtb } from '@angular/compiler';
 import { Injectable } from '@angular/core';
 import { State, Action, StateContext } from '@ngxs/store';
-import { tap } from 'rxjs';
+import { catchError, of, tap } from 'rxjs';
 import { CategoryDto } from 'src/app/dto/categpry-dto';
 import { ProductAdminDto } from 'src/app/dto/product-admin-dto';
 import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
@@ -51,8 +51,17 @@ export class ProductAdminState {
 
   @Action(DeleteProductAction)
   deleteProduct(ctx: StateContext<ProductAdminStateModel>, { product }: DeleteProductAction) {
-    return this.apiService.deleteProduct(product.id).pipe(tap(response => {
-      ctx.patchState({ loading: false, error: false, products: response as any })
-    }))
+    return this.apiService.deleteProduct(product.id).pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        if (response === null) {
+          ctx.patchState({ loading: false, error: true })
+        } else {
+          ctx.patchState({ loading: false, error: false, products: response as any })
+        }
+      }))
   }
 }

@@ -14,6 +14,9 @@ export class ProductComponent implements OnInit {
   @Select(ProductAdminSelectors.products)
   products$!: Observable<any[]>
 
+  @Select(ProductAdminSelectors.error)
+  error$!: Observable<boolean>
+
   constructor(private store: Store) { }
 
   ngOnInit(): void {

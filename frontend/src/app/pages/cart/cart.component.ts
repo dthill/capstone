@@ -19,6 +19,9 @@ export class CartComponent implements OnInit {
   @Select(CartSelectors.cart)
   cart$!: Observable<PurchaseDto>;
 
+  @Select(CartSelectors.isEmptyCart)
+  isEmptyCart$!: Observable<boolean>;
+
   constructor(private store: Store, private router: Router) { }
 
   ngOnInit(): void {

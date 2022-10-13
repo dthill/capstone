@@ -1,26 +1,22 @@
 import { Injectable } from '@angular/core';
 import { State, Action, StateContext } from '@ngxs/store';
-import { tap } from 'rxjs';
+import { catchError, EMPTY, tap } from 'rxjs';
 import { PurchaseDto } from 'src/app/dto/purchase-dto';
 import { ApiService } from 'src/app/services/api.service';
-import { AddToCartAction, DeleteFromCartAction, LoadCartAction, PaymentAction } from './cart.actions';
+import { AddToCartAction, ClearCartStateAction, DeleteFromCartAction, LoadCartAction, PaymentAction } from './cart.actions';
 
 export class CartStateModel {
   loading!: boolean;
   cart!: PurchaseDto;
-  purchase?: PurchaseDto;
+  error!: boolean;
 }
 
 const defaults: CartStateModel = {
   loading: false,
+  error: false,
   cart: {
     id: 0,
     products: [],
-    buyer: {
-      isAdmin: false,
-      email: '',
-      password: ''
-    },
     createdOn: '',
   }
 };
@@ -53,10 +49,16 @@ export class CartState {
 
   @Action(PaymentAction)
   pay(ctx: StateContext<CartStateModel>, { payment }: PaymentAction) {
-    ctx.patchState({ loading: true })
-    return this.apiService.pay(payment).pipe(tap(response => {
-      ctx.patchState({ loading: false, purchase: response, cart: defaults.cart })
-    }))
+    ctx.patchState({ loading: true, error: false })
+    return this.apiService.pay(payment).pipe(
+      catchError(reponse => {
+        console.error(reponse)
+        ctx.patchState({ error: true })
+        return EMPTY
+      }),
+      tap(() => {
+        ctx.patchState({ loading: false })
+      }))
   }
 
   @Action(DeleteFromCartAction)
@@ -65,5 +67,10 @@ export class CartState {
     return this.apiService.deleteFromCart(productId).pipe(tap(response => {
       ctx.patchState({ loading: false, cart: response })
     }))
+  }
+
+  @Action(ClearCartStateAction)
+  clear(ctx: StateContext<CartStateModel>,) {
+    ctx.setState(defaults)
   }
 }

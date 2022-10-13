@@ -1,4 +1,8 @@
 <h2 class="text-center">Categories</h2>
+<p *ngIf="error$ | async" class="text-danger text-center">
+    An error occured please make sure your category does not have any products depending on it and
+    try again.
+</p>
 <div class="card p-3 my-3">
     <div class="row fw-bold pb-3 border-bottom">
         <div class="col-2 col-sm-1">Id</div>

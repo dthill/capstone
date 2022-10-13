@@ -5,6 +5,7 @@ import { AdminGuard } from './guards/admin.guard';
 import { AuthGuard } from './guards/auth.guard';
 
 const routes: Routes = [
+  { path: routeConstants.purchase, loadChildren: () => import('./pages/purchase/purchase.module').then(m => m.PurchaseModule) },
   { path: routeConstants.checkout, loadChildren: () => import('./pages/checkout/checkout.module').then(m => m.CheckoutModule) },
   { path: routeConstants.cart, loadChildren: () => import('./pages/cart/cart.module').then(m => m.CartModule) },
   { path: `${routeConstants.products}/:${routeParams.productId}`, loadChildren: () => import('./pages/product-details/product-details.module').then(m => m.ProductDetailsModule) },

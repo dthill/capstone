@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { State, Action, StateContext } from '@ngxs/store';
-import { tap } from 'rxjs';
+import { catchError, of, tap } from 'rxjs';
 import { CategoryDto } from 'src/app/dto/categpry-dto';
 import { ApiService } from 'src/app/services/api.service';
 import { AddCategoryAction, DeleteCategoryAction, LoadAllCategoriesAction } from './category-admin.actions';
@@ -48,9 +48,18 @@ export class CategoryAdminState {
   deleteCategory(ctx: StateContext<CategoryAdminStateModel>, { category }: DeleteCategoryAction
   ) {
     ctx.patchState({ loading: true })
-    return this.apiService.deleteCategory(category.id).pipe(tap(response => {
-      ctx.patchState({ loading: false, error: false, categories: response as any })
-    }))
+    return this.apiService.deleteCategory(category.id).pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        if (response === null) {
+          ctx.patchState({ loading: false, error: true })
+        } else {
+          ctx.patchState({ loading: false, error: false, categories: response })
+        }
+      }))
   }
 
 }

@@ -31,7 +31,7 @@ public class Product {
     @NotNull
     @Min(1)
     private Long price;
-    @ManyToMany(fetch = FetchType.EAGER, cascade = CascadeType.DETACH)
+    @ManyToMany
     private List<Category> categories;
     private Boolean enabled = true;
     private String imageUrl;

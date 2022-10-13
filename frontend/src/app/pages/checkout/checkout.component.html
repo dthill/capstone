@@ -27,6 +27,10 @@
         <p *ngIf="address?.touched && address?.invalid" class="text-danger">
             This field is required.
         </p>
+        <h2 *ngIf="error$ | async" class="text-danger mt-3">
+            An error occured and no payment was taken.<br />
+            Please try again later.
+        </h2>
         <button
             [disabled]="checkoutForm.invalid || (isEmptyCart$ | async) || (loading$ | async)"
             class="btn btn-secondary w-100 mt-3"

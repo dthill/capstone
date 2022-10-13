@@ -187,7 +187,8 @@ export class ApiService {
         responseType: 'json',
         withCredentials: true,
         headers: new HttpHeaders({
-          Authorization: `Basic ${window.btoa(`dthill@gmx.net:test1`)}`,
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
           ['Content-type']: 'application/json',
           ['Response-type']: 'application/json',
           ['X-Requested-With']: 'XMLHttpRequest'
@@ -195,18 +196,19 @@ export class ApiService {
       })
   }
 
-  deleteCategory(categoryId: number) {
+  deleteCategory(categoryId: number): Observable<CategoryDto[]> {
     return this.http.delete(`${environment.api}/admin/category/${categoryId}`,
       {
         responseType: 'json',
         withCredentials: true,
         headers: new HttpHeaders({
-          Authorization: `Basic ${window.btoa(`dthill@gmx.net:test1`)}`,
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
           ['Content-type']: 'application/json',
           ['Response-type']: 'application/json',
           ['X-Requested-With']: 'XMLHttpRequest'
         })
-      })
+      }) as Observable<any>
   }
 
   getHome(): Observable<ProductAdminDto> {
@@ -266,7 +268,7 @@ export class ApiService {
       }) as Observable<any>
   }
 
-  pay(payment: PaymentDto): Observable<PurchaseDto> {
+  pay(payment: PaymentDto): Observable<void> {
     return this.http.post(environment.api + '/checkout', payment,
       {
         responseType: 'json',
@@ -281,4 +283,33 @@ export class ApiService {
       }) as Observable<any>
   }
 
+  getPurchaseDetails(purchaseId: number): Observable<PurchaseDto> {
+    return this.http.get(`${environment.api}/purchase/${purchaseId}`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  getPurchases(): Observable<PurchaseDto[]> {
+    return this.http.get(`${environment.api}/purchase`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
 }

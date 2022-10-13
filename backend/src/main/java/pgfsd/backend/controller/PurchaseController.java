@@ -7,9 +7,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import pgfsd.backend.dto.PaymentDto;
-import pgfsd.backend.entities.Purchase;
+import pgfsd.backend.dto.PurchaseDto;
 import pgfsd.backend.entities.User;
 import pgfsd.backend.services.PurchaseService;
+
+import java.util.List;
 
 @RestController
 public class PurchaseController {
@@ -29,20 +31,33 @@ public class PurchaseController {
     }
 
     @GetMapping("/cart")
-    public Purchase addToCart(Authentication authentication)  {
+    public PurchaseDto getCart(Authentication authentication)  {
         User user = (User) authentication.getPrincipal();
-        return purchaseService.getCart(user);
+        return purchaseService.getCartDto(user);
+    }
+
+    @GetMapping("/purchase/{purchaseId}")
+    public PurchaseDto getPurchase( @Validated @PathVariable Long purchaseId,Authentication authentication)  {
+        User user = (User) authentication.getPrincipal();
+        return purchaseService.getPurchase(user, purchaseId);
+    }
+
+    @GetMapping("/purchases")
+    public List<PurchaseDto> getPurchases(Authentication authentication)  {
+        User user = (User) authentication.getPrincipal();
+        return purchaseService.getPurchasesForUser(user);
     }
 
     @DeleteMapping("/cart/{productId}")
-    public Purchase deleteFromCart(@Validated @PathVariable Long productId, Authentication authentication) throws IllegalAccessException {
+    public PurchaseDto deleteFromCart(@Validated @PathVariable Long productId, Authentication authentication) throws IllegalAccessException {
         User user = (User) authentication.getPrincipal();
         return purchaseService.deleteFromCart(productId, user);
     }
 
     @PostMapping("/checkout")
-    public Purchase checkoutCart(@Validated @RequestBody PaymentDto paymentDto, Authentication authentication) {
+    public ResponseEntity<Object> checkoutCart(@Validated @RequestBody PaymentDto paymentDto, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
-        return purchaseService.checkoutCart(user, paymentDto);
+        purchaseService.checkoutCart(user, paymentDto);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }
