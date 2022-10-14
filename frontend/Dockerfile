@@ -14,14 +14,13 @@ RUN cd /workspace && \
 
 FROM caddy:2.6.2
 
-WORKDIR /var/www/html
+WORKDIR /usr/share/caddy
 
-RUN rm -rf /var/www/html/*
+RUN rm -rf /usr/share/caddy/**
 
-COPY --from=builder /workspace/dist/frontend /var/www/html
+COPY --from=builder /workspace/dist/frontend /usr/share/caddy
 
 COPY --from=builder /workspace/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE ${PORT}
 
-CMD ["caddy", "start"]
