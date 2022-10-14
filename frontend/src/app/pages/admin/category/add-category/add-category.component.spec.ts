@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
 
 import { AddCategoryComponent } from './add-category.component';
 
@@ -8,9 +9,10 @@ describe('AddCategoryComponent', () => {
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      declarations: [ AddCategoryComponent ]
+      declarations: [AddCategoryComponent],
+      imports: [NgxsModule.forRoot([])]
     })
-    .compileComponents();
+      .compileComponents();
 
     fixture = TestBed.createComponent(AddCategoryComponent);
     component = fixture.componentInstance;
