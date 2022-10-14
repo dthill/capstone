@@ -12,16 +12,16 @@ RUN cd /workspace && \
     npm run test:ci && \
     npm run build
 
-FROM nginx:1.23-alpine
+FROM caddy:2.6.2
 
-WORKDIR /usr/share/nginx/html
+WORKDIR /var/www/html
 
-RUN rm -rf /usr/share/nginx/html/*
+RUN rm -rf /var/www/html/*
 
-COPY --from=builder /workspace/dist/frontend /usr/share/nginx/html
+COPY --from=builder /workspace/dist/frontend /var/www/html
 
-COPY --from=builder /workspace/nginx.conf /etc/nginx/conf.d/nginx.conf
+COPY --from=builder /workspace/Caddyfile /etc/caddy/Caddyfile
 
 EXPOSE ${PORT}
 
-CMD ["nginx", "-g", "daemon off;"]
+CMD ["caddy", "start"]
