@@ -3,6 +3,9 @@
         <a class="navbar-brand" [routerLink]="[routeConstants.home]">Medicare</a>
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="btn nav-link" [routerLink]="[routeConstants.products]">Products</a>
+              </li>
                 <ng-container *ngIf="!(loggedIn$ | async)">
                     <li class="nav-item">
                         <a class="btn nav-link" [routerLink]="[routeConstants.login]"> Login </a>

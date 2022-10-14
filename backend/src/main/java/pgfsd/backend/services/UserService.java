@@ -46,7 +46,11 @@ public class UserService implements UserDetailsService {
         User user = new User();
         user.setUsername(userRegistrationDto.getEmail());
         user.setPassword(userRegistrationDto.getPassword());
-        user.setIsAdmin(false);
+        if(userRepository.findByIsAdmin(true).isEmpty()){
+            user.setIsAdmin(true);
+        } else {
+            user.setIsAdmin(false);
+        }
         User savedUser = userRepository.save(user);
         return new UserDto(savedUser.getUsername(), savedUser.getIsAdmin());
     }

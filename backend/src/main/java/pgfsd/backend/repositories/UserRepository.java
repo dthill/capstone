@@ -6,6 +6,7 @@ import pgfsd.backend.entities.User;
 
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 @Repository
@@ -17,6 +18,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     User findUserById(Long id);
 
     User findUserByIdAndPassword(Long id, String password);
+
+    Optional<User> findByIsAdmin(Boolean isAdmin);
 
     User findUserByUsername(String username);
 

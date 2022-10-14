@@ -16,11 +16,15 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
     @Query("SELECT p FROM Product p WHERE p.enabled = true")
     public List<Product> findEnabledWithPageable(Pageable pageable);
 
-    @Query("SELECT prod FROM Purchase pur " +
-            "JOIN pur.products prod " +
-            "WHERE prod.enabled = true AND pur.purchasedOn IS NOT NULL " +
-            "GROUP BY prod.id " +
-            "ORDER BY COUNT(pur.id) DESC")
+    @Query(value = """
+            SELECT prod.* FROM product prod
+                LEFT JOIN purchase_products pp on prod.id = pp.products_id
+                     LEFT JOIN purchase p on pp.purchase_id = p.id
+                     WHERE prod.enabled = true
+            GROUP BY prod.id
+            ORDER BY COUNT(p.id) DESC""",
+            nativeQuery = true
+    )
     public List<Product> findTopProducts(Pageable pageable);
 
     @Query("SELECT p FROM Product p WHERE p.enabled = true AND p.name LIKE ?1")
