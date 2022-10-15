@@ -8,8 +8,6 @@ services:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
     volumes:
       - db:/var/lib/mysql
-    ports:
-      - '3306:3306'
   backend:
     restart: always
     depends_on:
@@ -17,7 +15,6 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    ports:
     environment:
       - DB_PASSWORD=${DB_PASSWORD}
   frontend:
