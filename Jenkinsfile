@@ -18,5 +18,10 @@ pipeline {
                 sh 'docker compose up -d'
             }
         }
+        stage('e2e Test') {
+            steps {
+                sh 'docker compose -f docker-compose-e2e.yaml up -d'
+            }
+        }
     }
 }
