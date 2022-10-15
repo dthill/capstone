@@ -21,7 +21,7 @@ pipeline {
         stage('e2e Test') {
             steps {
                 sleep 40
-                sh 'cd e2e && ./mvnw test'
+                sh 'cd e2e-tests && ./mvnw test'
             }
         }
     }
