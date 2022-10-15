@@ -1,24 +1,25 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Injectable } from '@angular/core';
-import { Store } from '@ngxs/store';
-import { Observable } from 'rxjs';
-import { environment } from 'src/environments/environment';
-import { CategoryDto } from '../dto/categpry-dto';
-import { PaymentDto } from '../dto/payment-dto';
-import { ProductAdminDto } from '../dto/product-admin-dto';
-import { ProductDetailsDto } from '../dto/product-details-dto';
-import { ProductSearchDto } from '../dto/product-search-dto';
-import { PurchaseDto } from '../dto/purchase-dto';
-import { SaveCategoryDto } from '../dto/save-category-dto';
-import { SaveProductDto } from '../dto/save-product-dto';
-import { UserSelectors } from '../store/user/user.selectors';
+import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {Injectable} from '@angular/core';
+import {Store} from '@ngxs/store';
+import {Observable} from 'rxjs';
+import {environment} from 'src/environments/environment';
+import {CategoryDto} from '../dto/categpry-dto';
+import {PaymentDto} from '../dto/payment-dto';
+import {ProductAdminDto} from '../dto/product-admin-dto';
+import {ProductDetailsDto} from '../dto/product-details-dto';
+import {ProductSearchDto} from '../dto/product-search-dto';
+import {PurchaseDto} from '../dto/purchase-dto';
+import {SaveCategoryDto} from '../dto/save-category-dto';
+import {SaveProductDto} from '../dto/save-product-dto';
+import {UserSelectors} from '../store/user/user.selectors';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ApiService {
 
-  constructor(private http: HttpClient, private store: Store) { }
+  constructor(private http: HttpClient, private store: Store) {
+  }
 
   me() {
     return this.http.get(environment.api + '/user/login', {
@@ -66,10 +67,8 @@ export class ApiService {
     return this.http.post(environment.api + '/products', productSearch,
       {
         responseType: 'json',
-        withCredentials: true,
+        withCredentials: false,
         headers: new HttpHeaders({
-          Authorization:
-            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
           ['Content-type']: 'application/json',
           ['Response-type']: 'application/json',
           ['X-Requested-With']: 'XMLHttpRequest'

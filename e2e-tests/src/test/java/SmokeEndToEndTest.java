@@ -1,27 +1,104 @@
 
+import io.github.bonigarcia.wdm.WebDriverManager;
+import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import java.net.MalformedURLException;
+import java.net.URL;
 
 public class SmokeEndToEndTest {
     private WebDriver driver;
 
     @BeforeClass
-    public void setup() {
-        System.setProperty("webdriver.gecko.driver", "src/main/resources/geckodriver.exe");
-        driver = new FirefoxDriver();
+    public void setup() throws MalformedURLException {
+        driver = Driver.getInstance();
     }
+
+
 
 
     @AfterClass
-    public void tearDown() {
-        driver.close();
+    public void tearDown(
+    ) {
+        driver.quit();
     }
 
     @Test
-    public void homePage(){
-        driver.get("https://www.google.com");
+    public void homePage() {
+        driver.get(Constants.WEBSITE);
+        String pageTitle = driver.getTitle();
+        WebElement appRoot = driver.findElement(By.cssSelector("app-root"));
+        WebElement nav = driver.findElement(By.cssSelector("nav"));
+        WebElement appHome= driver.findElement(By.cssSelector("app-home"));
+        WebElement appProductSearch= driver.findElement(By.cssSelector("app-product-search"));
+        WebElement main = driver.findElement(By.cssSelector("main"));
+
+        Assert.assertEquals(pageTitle, "Medicare");
+        Assert.assertNotNull(appRoot);
+        Assert.assertNotNull(nav);
+        Assert.assertNotNull(appHome);
+        Assert.assertNotNull(appProductSearch);
+        Assert.assertNotNull(main);
+    }
+
+    @Test
+    public void loginPage() {
+        driver.get(Constants.WEBSITE+ "/login");
+        String pageTitle = driver.getTitle();
+        WebElement appRoot = driver.findElement(By.cssSelector("app-root"));
+        WebElement nav = driver.findElement(By.cssSelector("nav"));
+        WebElement appLogin = driver.findElement(By.cssSelector("app-login"));
+        WebElement emailInput= driver.findElement(By.cssSelector("input#email"));
+        WebElement passwordInput = driver.findElement(By.cssSelector("input#Password"));
+
+        Assert.assertEquals(pageTitle, "Medicare");
+        Assert.assertNotNull(appRoot);
+        Assert.assertNotNull(nav);
+        Assert.assertNotNull(appLogin);
+        Assert.assertNotNull(emailInput);
+        Assert.assertNotNull(passwordInput);
+    }
+
+    @Test
+    public void registerPage() {
+        driver.get(Constants.WEBSITE+ "/register");
+        String pageTitle = driver.getTitle();
+        WebElement appRoot = driver.findElement(By.cssSelector("app-root"));
+        WebElement nav = driver.findElement(By.cssSelector("nav"));
+        WebElement appRegister = driver.findElement(By.cssSelector("app-register"));
+        WebElement emailInput= driver.findElement(By.cssSelector("input#email"));
+        WebElement passwordInput = driver.findElement(By.cssSelector("input#Password"));
+
+        Assert.assertEquals(pageTitle, "Medicare");
+        Assert.assertNotNull(appRoot);
+        Assert.assertNotNull(nav);
+        Assert.assertNotNull(appRegister);
+        Assert.assertNotNull(emailInput);
+        Assert.assertNotNull(passwordInput);
+    }
+
+    @Test
+    public void productsPage() {
+        driver.get(Constants.WEBSITE+ "/products");
+        String pageTitle = driver.getTitle();
+        WebElement appRoot = driver.findElement(By.cssSelector("app-root"));
+        WebElement nav = driver.findElement(By.cssSelector("nav"));
+        WebElement appProducts = driver.findElement(By.cssSelector("app-products"));
+        WebElement main = driver.findElement(By.cssSelector("main"));
+
+        Assert.assertEquals(pageTitle, "Medicare");
+        Assert.assertNotNull(appRoot);
+        Assert.assertNotNull(nav);
+        Assert.assertNotNull(appProducts);
+        Assert.assertNotNull(main);
     }
 }

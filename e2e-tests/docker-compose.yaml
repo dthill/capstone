@@ -1,0 +1,8 @@
+version: '3.8'
+services:
+  selenium:
+    image: selenium/standalone-chrome
+    restart: always
+    shm_size: 2gb
+    ports:
+      - "4444:4444"
