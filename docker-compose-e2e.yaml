@@ -1,8 +1,6 @@
 version: '3.8'
 services:
   e2e-tests:
-    depends_on:
-      - selenium
     build:
       context: ./e2e-tests
       dockerfile: Dockerfile
