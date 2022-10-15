@@ -1,6 +1,7 @@
 pipeline {
     agent any
     triggers {
+        pollSCM('0 0 * * *')
     }
     environment {
         DB_PASSWORD = credentials('MEDICARE_DB_PASSWORD')
