@@ -1,6 +1,0 @@
-version: '3.8'
-services:
-  e2e-tests:
-    build:
-      context: ./e2e-tests
-      dockerfile: Dockerfile
