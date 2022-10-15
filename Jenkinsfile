@@ -20,6 +20,7 @@ pipeline {
         }
         stage('e2e Test') {
             steps {
+                sleep 60
                 sh 'docker compose -f docker-compose-e2e.yaml up -d'
             }
         }
