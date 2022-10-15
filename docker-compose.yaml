@@ -1,5 +1,6 @@
 version: '3.8'
 services:
+
   db:
     image: mysql:8.0
     restart: always
@@ -8,6 +9,7 @@ services:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
     volumes:
       - db:/var/lib/mysql
+
   backend:
     restart: always
     depends_on:
@@ -17,6 +19,7 @@ services:
       dockerfile: Dockerfile
     environment:
       - DB_PASSWORD=${DB_PASSWORD}
+
   frontend:
     restart: always
     depends_on:
@@ -26,6 +29,19 @@ services:
       dockerfile: Dockerfile
     ports:
       - '80:80'
+
+  e2e-tests:
+    depends_on:
+      - frontend
+    build:
+      context: ./e2e-tests
+      dockerfile: Dockerfile
+
+  selenium:
+    image: selenium/standalone-chrome
+    restart: always
+    shm_size: 2gb
+
 volumes:
   db:
     driver: local

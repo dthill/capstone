@@ -23,9 +23,6 @@ public class SmokeEndToEndTest {
         driver = Driver.getInstance();
     }
 
-
-
-
     @AfterClass
     public void tearDown(
     ) {
