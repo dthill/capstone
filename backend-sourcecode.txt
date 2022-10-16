@@ -1,0 +1,1363 @@
+package pgfsd.backend;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class BackendApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(BackendApplication.class, args);
+	}
+
+}
+package pgfsd.backend.configuration;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationEntryPoint;
+import pgfsd.backend.constants.UserRoleConstants;
+
+import static org.springframework.security.config.Customizer.withDefaults;
+
+@Configuration
+public class SecurityConfiguration {
+
+
+
+    @Bean
+    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        http
+                .httpBasic()
+                .and()
+                .authorizeRequests()
+                .antMatchers(HttpMethod.OPTIONS,"**").permitAll()
+                .antMatchers(
+                        "/error",
+                        "/user/logout",
+                        "/user/register",
+                        "/products",
+                        "/products/**",
+                        "/categories",
+                        "/categories/**"
+                ).permitAll()
+                .antMatchers(
+
+                        "/admin/**"
+                ).hasAuthority(UserRoleConstants.ADMIN)
+                .anyRequest().authenticated()
+                .and()
+                .logout().disable()
+                .csrf().disable()
+                .cors().disable();
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return NoOpPasswordEncoder.getInstance();
+    }
+}package pgfsd.backend.configuration;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.Ordered;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+@EnableWebMvc
+public class WebMvcConfiguration implements WebMvcConfigurer {
+
+    @Bean
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addCorsMappings(CorsRegistry registry) {
+                registry.addMapping("/**")
+                        .allowedMethods("GET", "PUT", "POST", "HEAD", "OPTIONS", "DELETE", "PATCH")
+                        .allowedOrigins("http://localhost:4200")
+                        .allowCredentials(true);
+            }
+        };
+    }
+}package pgfsd.backend.constants;
+
+public class UserRoleConstants {
+    public final static String USER = "USER";
+    public final static String ADMIN = "ADMIN";
+
+}
+package pgfsd.backend.controller;
+
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import pgfsd.backend.dto.SaveCategoryDto;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.services.CategoryService;
+
+import java.util.List;
+
+@RestController
+public class CategoryController {
+    private final CategoryService categoryService;
+
+    public CategoryController(CategoryService categoryService) {
+        this.categoryService = categoryService;
+    }
+
+    @GetMapping("/categories")
+    public List<Category> allCategories() {
+        return categoryService.getAllCategories();
+    }
+
+    @GetMapping("/categories/{id}")
+    public Category categoryById(@Validated @PathVariable Long id) {
+        return categoryService.getCategory(id);
+    }
+
+    @PostMapping("/admin/category")
+    public List<Category> addCategory(@Validated @RequestBody SaveCategoryDto saveCategoryDto) {
+        return categoryService.addCategory(saveCategoryDto);
+    }
+
+    @PutMapping("/admin/category")
+    public Category updateProduct(@Validated @RequestBody Category category) {
+        return categoryService.updateCategory(category);
+    }
+
+    @DeleteMapping("/admin/category/{id}")
+    public List<Category> delete(@Validated @PathVariable Long id) {
+        return categoryService.deleteCategory(id);
+    }
+}
+package pgfsd.backend.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import pgfsd.backend.dto.ProductAdminDto;
+import pgfsd.backend.dto.ProductDetailsDto;
+import pgfsd.backend.dto.ProductSearchDto;
+import pgfsd.backend.dto.SaveProductDto;
+import pgfsd.backend.entities.Product;
+import pgfsd.backend.services.ProductService;
+
+import java.util.List;
+
+@RestController
+public class ProductController {
+    private final ProductService productService;
+
+    @Autowired
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
+
+    @PostMapping("/products")
+    public ProductAdminDto searchProducts(@Validated @RequestBody ProductSearchDto productSearchDto) {
+        return this.productService.searchAllProducts(productSearchDto);
+    }
+
+    @GetMapping("/products/top")
+    public ProductAdminDto getTopProducts() {
+        return this.productService.getTopProducts();
+    }
+
+    @GetMapping("/products/{id}")
+    public ProductDetailsDto productById(@Validated @PathVariable Long id) {
+        return this.productService.getProduct(id);
+    }
+
+    @GetMapping("/admin/products")
+    public ProductAdminDto allProducts() {
+        return this.productService.getAllAdminProducts();
+    }
+
+    @PostMapping("/admin/product")
+    public List<Product> addProduct(@Validated @RequestBody SaveProductDto saveProductDto) {
+        return this.productService.addProduct(saveProductDto);
+    }
+
+    @PutMapping("/admin/product")
+    public Product updateProduct(@Validated @RequestBody ProductDetailsDto productDetailsDto) {
+        return this.productService.updateProduct(productDetailsDto);
+    }
+
+    @DeleteMapping("/admin/product/{id}")
+    public List<Product> delete(@Validated @PathVariable Long id) {
+        return this.productService.deleteProduct(id);
+    }
+}
+package pgfsd.backend.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import pgfsd.backend.dto.PaymentDto;
+import pgfsd.backend.dto.PurchaseDto;
+import pgfsd.backend.entities.User;
+import pgfsd.backend.services.PurchaseService;
+
+import java.util.List;
+
+@RestController
+public class PurchaseController {
+
+    private PurchaseService purchaseService;
+
+    @Autowired
+    public PurchaseController(PurchaseService purchaseService) {
+        this.purchaseService = purchaseService;
+    }
+
+    @PostMapping("/cart")
+    public ResponseEntity<Object> addToCart(@Validated @RequestBody Long productId, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        purchaseService.addToCart(productId, user);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
+    @GetMapping("/cart")
+    public PurchaseDto getCart(Authentication authentication)  {
+        User user = (User) authentication.getPrincipal();
+        return purchaseService.getCartDto(user);
+    }
+
+    @GetMapping("/purchase/{purchaseId}")
+    public PurchaseDto getPurchase( @Validated @PathVariable Long purchaseId,Authentication authentication)  {
+        User user = (User) authentication.getPrincipal();
+        return purchaseService.getPurchase(user, purchaseId);
+    }
+
+    @GetMapping("/purchases")
+    public List<PurchaseDto> getPurchases(Authentication authentication)  {
+        User user = (User) authentication.getPrincipal();
+        return purchaseService.getPurchasesForUser(user);
+    }
+
+    @DeleteMapping("/cart/{productId}")
+    public PurchaseDto deleteFromCart(@Validated @PathVariable Long productId, Authentication authentication) throws IllegalAccessException {
+        User user = (User) authentication.getPrincipal();
+        return purchaseService.deleteFromCart(productId, user);
+    }
+
+    @PostMapping("/checkout")
+    public ResponseEntity<Object> checkoutCart(@Validated @RequestBody PaymentDto paymentDto, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        purchaseService.checkoutCart(user, paymentDto);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+}
+package pgfsd.backend.controller;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import pgfsd.backend.dto.UserDto;
+import pgfsd.backend.dto.UserRegistrationDto;
+import pgfsd.backend.entities.User;
+import pgfsd.backend.services.UserService;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.List;
+import java.util.Set;
+
+@RestController
+@RequestMapping("/user")
+public class UserController {
+
+    private final UserService userService;
+    private final Logger logger = LoggerFactory.getLogger(UserController.class);
+
+    @Autowired
+    public UserController(UserService userService) {
+        this.userService = userService;
+    }
+
+    @GetMapping("/login")
+    public UserDto login(Authentication authentication) {
+        logger.info("controller: /login ");
+        if (authentication == null) {
+            return null;
+        }
+        User user = (User) authentication.getPrincipal();
+        return new UserDto(user.getUsername(), user.getIsAdmin());
+    }
+
+    @GetMapping("/logout")
+    public ResponseEntity logout(SecurityContextLogoutHandler securityContextLogoutHandler, HttpServletRequest request, HttpServletResponse response, Authentication authentication) {
+        logger.info("controller: /logout");
+        securityContextLogoutHandler.logout(request, response, authentication);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/register")
+    public UserDto registerUser(@Validated @RequestBody UserRegistrationDto userRegistrationDto) {
+        logger.info("controller: /register params: " + userRegistrationDto.toString());
+        return userService.registerUser(userRegistrationDto);
+    }
+
+    @GetMapping("/users/{email}")
+    public List<UserDto> users(@PathVariable String email) {
+        logger.info("controller: /users ");
+        return userService.getAllUsers(email);
+    }
+
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ResponseStatus> handleBadCredentials(Exception e) {
+        logger.info("badCredentialsException handler called exception:"+e.toString());
+        return ResponseEntity.ok().build();
+    }
+
+}
+package pgfsd.backend.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class PaymentDto {
+    @NotNull
+    private Long creditCardNumber;
+    @NotNull
+    private String address;
+}
+package pgfsd.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.entities.Product;
+
+import java.util.List;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class ProductAdminDto {
+    private List<Product> products;
+    private List<Category> possibleCategories;
+}
+package pgfsd.backend.dto;
+
+import lombok.Data;
+import pgfsd.backend.entities.Category;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.util.List;
+import java.util.Optional;
+
+@Data
+public class ProductDetailsDto {
+    @Min(1)
+    private Long id;
+    @Size(min = 3, max = 100)
+    private String name;
+    @Size(min = 3, max = 200)
+    private String description;
+    @Min(1)
+    private Long price;
+    @NotNull
+    private List<Long> categoryIds;
+    @NotNull
+    private Boolean enabled;
+    private String imageUrl;
+    private Optional<List<Category>> possibleCategories;
+}
+package pgfsd.backend.dto;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+public class ProductSearchDto {
+    private Long categoryId;
+    private String productSearch;
+}
+package pgfsd.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import pgfsd.backend.entities.Product;
+import pgfsd.backend.entities.User;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import java.time.Instant;
+import java.util.List;
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class PurchaseDto {
+    @NotNull
+    private Long id;
+    @NotNull
+    private List<Product> products;
+    @NotNull
+    private Instant createdOn;
+    private Instant purchasedOn;
+    private Long creditCardNumber;
+    private String address;
+}
+package pgfsd.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import pgfsd.backend.entities.Product;
+
+import javax.persistence.ManyToMany;
+import javax.validation.constraints.NotNull;
+import java.util.Set;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class SaveCategoryDto {
+    @NotNull
+    private String name;
+    @NotNull
+    private String description;
+}
+package pgfsd.backend.dto;
+
+import lombok.Data;
+import pgfsd.backend.entities.Category;
+
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+@Data
+public class SaveProductDto {
+    @Size(min = 3, max = 100)
+    private String name;
+    @Size(min = 3, max = 200)
+    private String description;
+    @Min(1)
+    private Long price;
+    @NotNull
+    private Boolean enabled;
+    @NotNull
+    private List<Long> categoryIds;
+    private String imageUrl;
+}
+package pgfsd.backend.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+
+import javax.validation.constraints.Size;
+
+@Getter
+@Setter
+@ToString
+@AllArgsConstructor
+public class UserDto {
+    @Size(min = 3, max = 200)
+    private String email;
+    private Boolean isAdmin;
+
+}
+package pgfsd.backend.dto;
+
+import lombok.Data;
+
+import javax.validation.constraints.Size;
+
+@Data
+public class UserRegistrationDto {
+    @Size(min = 3, max = 200)
+    private String email;
+    @Size(min = 5, max = 200)
+    private String password;
+}
+package pgfsd.backend.entities;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import java.util.List;
+import java.util.Set;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@Entity
+@Table(name = "category")
+public class Category {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Long id;
+    @NotNull
+    private String name;
+    @NotNull
+    private String description;
+    @ManyToMany
+    private Set<Product> products;
+}package pgfsd.backend.entities;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.*;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "product")
+public class Product {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Long id;
+    @Size(min = 3, max = 100)
+    private String name;
+    @Size(min = 3, max = 200)
+    private String description;
+    @NotNull
+    @Min(1)
+    private Long price;
+    @ManyToMany
+    private List<Category> categories;
+    private Boolean enabled = true;
+    private String imageUrl;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Product product = (Product) o;
+        return id.equals(product.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
+    }
+}package pgfsd.backend.entities;
+
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import java.time.Instant;
+import java.util.List;
+
+@NoArgsConstructor
+@Getter
+@Setter
+@Entity
+@Table(name = "purchase")
+public class Purchase {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id", nullable = false)
+    private Long id;
+    @NotNull
+    @ManyToMany(fetch = FetchType.EAGER)
+    private List<Product> products;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    private User buyer;
+    @NotNull
+    private Instant createdOn;
+    private Instant purchasedOn;
+    private Long creditCardNumber;
+    private String address;
+}package pgfsd.backend.entities;
+
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+import org.hibernate.Hibernate;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import pgfsd.backend.constants.UserRoleConstants;
+
+import javax.persistence.*;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+import java.util.*;
+
+@Getter
+@Setter
+@ToString
+@RequiredArgsConstructor
+@Entity
+@Table(name = "user")
+public class User implements UserDetails {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(unique = true)
+    @NotNull
+    @Size(min = 3, max = 50)
+    private String username;
+    @NotNull
+    @Size(min = 3, max = 50)
+    private String password;
+    private Boolean isAdmin = false;
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    @Override
+    public Collection<GrantedAuthority> getAuthorities() {
+        Collection<GrantedAuthority> authorities = new HashSet<>();
+        authorities.add(new SimpleGrantedAuthority(UserRoleConstants.USER));
+        if(isAdmin){
+            authorities.add(new SimpleGrantedAuthority(UserRoleConstants.ADMIN));
+        }
+        return authorities;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o))
+            return false;
+        User user = (User) o;
+        return id != null && Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
+}package pgfsd.backend.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import pgfsd.backend.entities.Category;
+
+
+@Repository
+public interface CategoryRepository extends JpaRepository<Category, Long> {
+}
+package pgfsd.backend.repositories;
+
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+import pgfsd.backend.entities.Product;
+
+import java.util.List;
+
+@Repository
+public interface ProductRepository extends JpaRepository<Product, Long> {
+
+    List<Product> findAll();
+
+    @Query("SELECT p FROM Product p WHERE p.enabled = true")
+    public List<Product> findEnabledWithPageable(Pageable pageable);
+
+    @Query(value = """
+            SELECT prod.* FROM product prod
+                LEFT JOIN purchase_products pp on prod.id = pp.products_id
+                     LEFT JOIN purchase p on pp.purchase_id = p.id
+                     WHERE prod.enabled = true
+            GROUP BY prod.id
+            ORDER BY COUNT(p.id) DESC""",
+            nativeQuery = true
+    )
+    public List<Product> findTopProducts(Pageable pageable);
+
+    @Query("SELECT p FROM Product p WHERE p.enabled = true AND p.name LIKE ?1")
+    public List<Product> searchAllEnabledProducts(String searchTerm);
+
+    @Query("SELECT DISTINCT p FROM Product p JOIN p.categories c " +
+            "WHERE p.enabled = true AND p.name LIKE ?1 AND c.id = ?2")
+    public List<Product> searchAllEnabledProductsAndCategories(String searchTerm, Long categoryId);
+}
+package pgfsd.backend.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.entities.Purchase;
+import pgfsd.backend.entities.User;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+
+@Repository
+public interface PurchaseRepository extends JpaRepository<Purchase, Long> {
+
+    Optional<Purchase> findByBuyerAndPurchasedOnOrderByCreatedOnDesc (User buyer,Instant purchasedOn);
+
+    Optional<Purchase> findByBuyerAndId(User buyer, Long id);
+
+    List<Purchase> findAllByBuyerOrderByPurchasedOnDesc(User buyer);
+}
+package pgfsd.backend.repositories;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+import pgfsd.backend.entities.User;
+
+
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+@Repository
+public interface UserRepository extends JpaRepository<User, Long> {
+    List<User> findAll();
+
+    List<User> findAllByUsernameContainingIgnoreCase(String username);
+
+    User findUserById(Long id);
+
+    User findUserByIdAndPassword(Long id, String password);
+
+    Optional<User> findByIsAdmin(Boolean isAdmin);
+
+    User findUserByUsername(String username);
+
+
+    User save(User user);
+}package pgfsd.backend.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pgfsd.backend.dto.SaveCategoryDto;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.repositories.CategoryRepository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class CategoryService {
+    private CategoryRepository categoryRepository;
+
+    @Autowired
+    public CategoryService(CategoryRepository categoryRepository) {
+        this.categoryRepository = categoryRepository;
+    }
+
+    public List<Category> getAllCategories() {
+        return categoryRepository.findAll();
+    }
+
+    public Category getCategory(Long id){
+        Optional<Category> category = categoryRepository.findById(id);
+        return category.orElse(null);
+    }
+
+
+    @Transactional
+    public List<Category> addCategory(SaveCategoryDto saveCategoryDto) {
+        Category category = new Category();
+        category.setName(saveCategoryDto.getName());
+        category.setDescription(saveCategoryDto.getDescription());
+        categoryRepository.save(category);
+        return categoryRepository.findAll();
+    }
+
+    @Transactional
+    public Category updateCategory(Category category){
+        return categoryRepository.save(category);
+    }
+
+
+    @Transactional
+    public List<Category> deleteCategory(Long categoryId){
+        Category category = new Category();
+        category.setId(categoryId);
+        categoryRepository.delete(category);
+        return categoryRepository.findAll();
+    }
+}
+package pgfsd.backend.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pgfsd.backend.dto.ProductAdminDto;
+import pgfsd.backend.dto.ProductDetailsDto;
+import pgfsd.backend.dto.ProductSearchDto;
+import pgfsd.backend.dto.SaveProductDto;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.entities.Product;
+import pgfsd.backend.repositories.CategoryRepository;
+import pgfsd.backend.repositories.ProductRepository;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+public class ProductService {
+
+    private final ProductRepository productRepository;
+    private final CategoryRepository categoryRepository;
+
+    @Autowired
+    public ProductService(ProductRepository productRepository, CategoryRepository categoryRepository) {
+        this.productRepository = productRepository;
+        this.categoryRepository = categoryRepository;
+    }
+
+    public ProductAdminDto searchAllProducts(ProductSearchDto productSearchDto) {
+        ProductAdminDto productAdminDto = new ProductAdminDto();
+        productAdminDto.setPossibleCategories(categoryRepository.findAll());
+        String searchTerm = productSearchDto.getProductSearch();
+        if(searchTerm == null) {
+            searchTerm = "";
+        }
+        searchTerm = "%" + searchTerm + "%";
+        if(productSearchDto.getCategoryId() != null){
+            productAdminDto.setProducts(productRepository.searchAllEnabledProductsAndCategories(searchTerm, productSearchDto.getCategoryId()));
+        } else {
+            productAdminDto.setProducts(productRepository.searchAllEnabledProducts(searchTerm));
+        }
+        return productAdminDto;
+    }
+
+
+    public ProductAdminDto getAllAdminProducts() {
+        ProductAdminDto productAdminDto = new ProductAdminDto();
+        productAdminDto.setProducts(productRepository.findAll());
+        productAdminDto.setPossibleCategories(categoryRepository.findAll());
+        return productAdminDto;
+    }
+
+    public ProductAdminDto getTopProducts() {
+        ProductAdminDto productAdminDto = new ProductAdminDto();
+        Pageable firstPage = PageRequest.of(0, 5, Sort.by("name").ascending());
+        productAdminDto.setProducts(
+                productRepository.findTopProducts(firstPage)
+        );
+        productAdminDto.setPossibleCategories(categoryRepository.findAll());
+        return productAdminDto;
+    }
+
+    public ProductDetailsDto getProduct(Long id){
+        Optional<Product> savedProduct = this.productRepository.findById(id);
+        if(savedProduct.isEmpty()){
+            return null;
+        }
+        Product product = savedProduct.get();
+        List<Category> categories = categoryRepository.findAll();
+        ProductDetailsDto productDetailsDto = new ProductDetailsDto();
+        productDetailsDto.setId(product.getId());
+        productDetailsDto.setName(product.getName());
+        productDetailsDto.setDescription(product.getDescription());
+        productDetailsDto.setPrice(product.getPrice());
+        productDetailsDto.setImageUrl(product.getImageUrl());
+        productDetailsDto.setCategoryIds(product.getCategories()
+                .stream()
+                .map(Category::getId)
+                .collect(Collectors.toList()));
+        productDetailsDto.setEnabled((product.getEnabled()));
+        productDetailsDto.setPossibleCategories(Optional.of(categories));
+        return productDetailsDto;
+    }
+
+
+    @Transactional
+    public List<Product> addProduct(SaveProductDto saveProductDto) {
+        Product product = new Product();
+        product.setName(saveProductDto.getName());
+        product.setDescription(saveProductDto.getDescription());
+        product.setPrice(saveProductDto.getPrice());
+        product.setEnabled(saveProductDto.getEnabled());
+        product.setImageUrl(saveProductDto.getImageUrl());
+        product.setCategories(saveProductDto.getCategoryIds().stream().map(categoryId -> {
+            Category category = new Category();
+            category.setId(categoryId);
+            return category;
+        }).collect(Collectors.toList()));
+        productRepository.save(product);
+        return productRepository.findAll();
+    }
+
+    @Transactional
+    public Product updateProduct(ProductDetailsDto productDetailsDto){
+        Product product = new Product();
+        product.setId(productDetailsDto.getId());
+        product.setName(productDetailsDto.getName());
+        product.setDescription(productDetailsDto.getDescription());
+        product.setPrice(productDetailsDto.getPrice());
+        product.setEnabled(productDetailsDto.getEnabled());
+        product.setImageUrl(productDetailsDto.getImageUrl());
+        product.setCategories(productDetailsDto.getCategoryIds()
+                .stream().map(categoryId -> {
+                    Category category = new Category();
+                    category.setId(categoryId);
+                    return category;
+                }).collect(Collectors.toList()));
+        return this.productRepository.save(product);
+    }
+
+
+    @Transactional
+    public List<Product> deleteProduct(Long productId){
+        Product product = new Product();
+        product.setId(productId);
+        productRepository.delete(product);
+        return productRepository.findAll();
+    }
+}
+package pgfsd.backend.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import pgfsd.backend.dto.PaymentDto;
+import pgfsd.backend.dto.PurchaseDto;
+import pgfsd.backend.entities.Product;
+import pgfsd.backend.entities.Purchase;
+import pgfsd.backend.entities.User;
+import pgfsd.backend.repositories.PurchaseRepository;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Service
+public class PurchaseService {
+
+    private final PurchaseRepository purchaseRepository;
+
+    @Autowired
+    public PurchaseService(PurchaseRepository purchaseRepository) {
+        this.purchaseRepository = purchaseRepository;
+    }
+
+    public void addToCart(Long productId, User user){
+        Product product = new Product();
+        product.setId(productId);
+        Purchase cart = getCart(user);
+        cart.getProducts().add(product);
+        purchaseRepository.save(cart);
+    }
+
+    public Purchase getCart(User user){
+        Optional<Purchase> previousCart = purchaseRepository
+                .findByBuyerAndPurchasedOnOrderByCreatedOnDesc(user,null);
+        Purchase cart = previousCart.orElse(new Purchase());
+        if(cart.getProducts() == null){
+            cart.setProducts(new ArrayList<>());
+        }
+        cart.setBuyer(user);
+        cart.setCreatedOn(Instant.now());
+        return cart;
+    }
+
+    public PurchaseDto getCartDto(User user){
+        return mapPurchaseToDto((getCart(user)));
+    }
+
+    public PurchaseDto deleteFromCart(Long productId, User user) throws IllegalAccessException {
+        Purchase purchase = getCart(user);
+        List<Product> products = purchase.getProducts();
+        for(int i =0; i < products.size(); i++){
+            if(Objects.equals(products.get(i).getId(), productId)){
+                products.remove(i);
+                break;
+            }
+        }
+        return mapPurchaseToDto(purchaseRepository.save(purchase));
+    }
+
+    public void checkoutCart(User user, PaymentDto paymentDto){
+        Purchase cart = getCart(user);
+        cart.setAddress(paymentDto.getAddress());
+        cart.setCreditCardNumber(paymentDto.getCreditCardNumber());
+        cart.setPurchasedOn(Instant.now());
+        Purchase purchase = purchaseRepository.save(cart);
+    }
+
+    public PurchaseDto getPurchase(User user, Long purchaseId){
+        Optional<Purchase> purchase = purchaseRepository.findByBuyerAndId(user,purchaseId);
+        if(purchase.isEmpty()){
+            return null;
+        }
+        return mapPurchaseToDto(purchase.get());
+    }
+
+    public List<PurchaseDto> getPurchasesForUser(User user){
+        return purchaseRepository
+                .findAllByBuyerOrderByPurchasedOnDesc(user)
+                .stream()
+                .map(this::mapPurchaseToDto)
+                .collect(Collectors.toList());
+    }
+
+    private PurchaseDto mapPurchaseToDto(Purchase purchase){
+        Long anonymizedCreditCard = purchase.getCreditCardNumber() == null ? null : purchase.getCreditCardNumber() % 100;
+        return new PurchaseDto(
+                purchase.getId(),
+                purchase.getProducts(),
+                purchase.getCreatedOn(),
+                purchase.getPurchasedOn(),
+                anonymizedCreditCard,
+                purchase.getAddress()
+        );
+    }
+}
+package pgfsd.backend.services;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import pgfsd.backend.dto.UserDto;
+import pgfsd.backend.dto.UserRegistrationDto;
+import pgfsd.backend.entities.User;
+import pgfsd.backend.repositories.UserRepository;
+
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+@Service
+public class UserService implements UserDetailsService {
+    private final UserRepository userRepository;
+
+    @Autowired
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public List<UserDto> getAllUsers(String username) {
+        List<User> users;
+        if (username == null || username.equals("")) {
+            users =  userRepository.findAll();
+        } else {
+            users = userRepository.findAllByUsernameContainingIgnoreCase(username);
+        }
+        return users
+                .stream()
+                .map(user -> new UserDto(user.getUsername(), user.getIsAdmin()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public UserDto registerUser(UserRegistrationDto userRegistrationDto) {
+        User existingUser = userRepository.findUserByUsername(userRegistrationDto.getEmail());
+        if (existingUser != null) {
+            return null;
+        }
+        User user = new User();
+        user.setUsername(userRegistrationDto.getEmail());
+        user.setPassword(userRegistrationDto.getPassword());
+        if(userRepository.findByIsAdmin(true).isEmpty()){
+            user.setIsAdmin(true);
+        } else {
+            user.setIsAdmin(false);
+        }
+        User savedUser = userRepository.save(user);
+        return new UserDto(savedUser.getUsername(), savedUser.getIsAdmin());
+    }
+
+    @Override
+    public UserDetails loadUserByUsername(String username) {
+        User user = userRepository.findUserByUsername(username);
+        if (user == null) {
+            throw new UsernameNotFoundException(username);
+        }
+        return user;
+    }
+
+}
+spring.datasource.url=jdbc:mysql://db:3306/ecommerce
+spring.datasource.username=root
+spring.datasource.password=${DB_PASSWORD}
+spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.hibernate.ddl-auto=update
+spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+server.servlet.contextPath=/api
+spring.datasource.url=jdbc:mysql://localhost:3306/ecommerce
+spring.datasource.username=root
+spring.datasource.password=test1234
+spring.jpa.show-sql=true
+spring.jpa.database-platform=org.hibernate.dialect.MySQL8Dialect
+spring.jpa.hibernate.ddl-auto=update
+spring.datasource.driverClassName=com.mysql.cj.jdbc.Driver
+logging.level.org.springframework.security=DEBUG
+server.servlet.contextPath=/apipackage pgfsd.backend.services;
+
+import pgfsd.backend.dto.SaveCategoryDto;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.repositories.CategoryRepository;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
+
+public class CategoryServiceTest {
+
+    private CategoryRepository categoryRepository;
+    private CategoryService categoryService;
+
+
+    @org.testng.annotations.BeforeMethod
+    public void setUp() {
+        categoryRepository = mock(CategoryRepository.class);
+        categoryService = new CategoryService(categoryRepository);
+    }
+
+    @org.testng.annotations.AfterMethod
+    public void tearDown() {
+    }
+
+    @org.testng.annotations.Test
+    public void testGetAllCategories() {
+        List<Category> expected = new ArrayList<>();
+        when(categoryRepository.findAll()).thenReturn(expected);
+
+        List<Category> categories = categoryService.getAllCategories();
+
+        assertEquals(categories,expected);
+        verify(categoryRepository).findAll();
+    }
+
+    @org.testng.annotations.Test
+    public void testGetCategory() {
+        Category expected = new Category();
+        Long id = 1L;
+        when(categoryRepository.findById(id)).thenReturn(Optional.of(expected));
+
+        Category category = categoryService.getCategory(id);
+
+        assertEquals(category, expected);
+        verify(categoryRepository).findById(id);
+    }
+
+    @org.testng.annotations.Test
+    public void testAddCategory() {
+        SaveCategoryDto saveCategoryDto = new SaveCategoryDto();
+        categoryService.addCategory(saveCategoryDto);
+
+        verify(categoryRepository).save(any(Category.class));
+        verify(categoryRepository).findAll();
+    }
+
+    @org.testng.annotations.Test
+    public void testUpdateCategory() {
+        Category category = new Category();
+
+        categoryService.updateCategory(category);
+
+        verify(categoryRepository).save(category);
+    }
+
+    @org.testng.annotations.Test
+    public void testDeleteCategory() {
+        Long categoryId = 1L;
+
+        categoryService.deleteCategory(categoryId);
+
+        verify(categoryRepository).delete(any(Category.class));
+        verify(categoryRepository).findAll();
+    }
+}package pgfsd.backend.services;
+
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
+import pgfsd.backend.dto.ProductDetailsDto;
+import pgfsd.backend.dto.ProductSearchDto;
+import pgfsd.backend.dto.SaveCategoryDto;
+import pgfsd.backend.dto.SaveProductDto;
+import pgfsd.backend.entities.Category;
+import pgfsd.backend.entities.Product;
+import pgfsd.backend.repositories.CategoryRepository;
+import pgfsd.backend.repositories.ProductRepository;
+
+import java.util.ArrayList;
+import java.util.Optional;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.testng.Assert.*;
+
+public class ProductServiceTest {
+
+    private ProductService productService;
+    private ProductRepository productRepository;
+    private CategoryRepository categoryRepository;
+
+    @BeforeMethod
+    public void setUp() {
+        productRepository = mock(ProductRepository.class);
+        categoryRepository = mock(CategoryRepository.class);
+        productService = new ProductService(productRepository,categoryRepository);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+    }
+
+    @Test
+    public void testSearchAllProducts() {
+        String search = "test";
+        Long categoryId = 1L;
+        ProductSearchDto productSearchDto = new ProductSearchDto();
+        productSearchDto.setProductSearch(search);
+        productSearchDto.setCategoryId(categoryId);
+
+        productService.searchAllProducts(productSearchDto);
+
+        verify(productRepository).searchAllEnabledProductsAndCategories(anyString(),eq(categoryId));
+    }
+
+    @Test
+    public void testGetAllAdminProducts() {
+        productService.getAllAdminProducts();
+
+        verify(productRepository).findAll();
+        verify(categoryRepository).findAll();
+    }
+
+    @Test
+    public void testGetTopProducts() {
+        Pageable firstPage = PageRequest.of(0, 5, Sort.by("name").ascending());
+
+        productService.getTopProducts();
+
+        verify(productRepository).findTopProducts(eq(firstPage));
+        verify(categoryRepository).findAll();
+    }
+
+    @Test
+    public void testGetProduct() {
+        Long productId = 1L;
+        Product product = new Product();
+        product.setCategories(new ArrayList<>());
+        when(productRepository.findById(productId)).thenReturn(Optional.of(product));
+        when(categoryRepository.findAll()).thenReturn(new ArrayList<>());
+
+        productService.getProduct(productId);
+
+        verify(productRepository).findById(eq(productId));
+        verify(categoryRepository).findAll();
+    }
+
+    @Test
+    public void testAddProduct() {
+        SaveProductDto saveProductDto = mock(SaveProductDto.class);
+
+        productService.addProduct(saveProductDto);
+
+        verify(productRepository).save(any(Product.class));
+    }
+
+    @Test
+    public void testUpdateProduct() {
+        ProductDetailsDto productDetailsDto = mock(ProductDetailsDto.class);
+
+        productService.updateProduct(productDetailsDto);
+
+        verify(productRepository).save(any(Product.class));
+    }
+
+    @Test
+    public void testDeleteProduct() {
+        Long productId = 1L;
+
+        productService.deleteProduct(productId);
+
+        verify(productRepository).delete(any(Product.class));
+    }
+}

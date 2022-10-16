@@ -1,0 +1,4223 @@
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { routeConstants, routeParams } from './constants/route.constants';
+import { AdminGuard } from './guards/admin.guard';
+import { AuthGuard } from './guards/auth.guard';
+
+const routes: Routes = [
+  { path: routeConstants.purchase, loadChildren: () => import('./pages/purchase/purchase.module').then(m => m.PurchaseModule) },
+  { path: routeConstants.checkout, loadChildren: () => import('./pages/checkout/checkout.module').then(m => m.CheckoutModule) },
+  { path: routeConstants.cart, loadChildren: () => import('./pages/cart/cart.module').then(m => m.CartModule) },
+  { path: `${routeConstants.products}/:${routeParams.productId}`, loadChildren: () => import('./pages/product-details/product-details.module').then(m => m.ProductDetailsModule) },
+  { path: routeConstants.products, loadChildren: () => import('./pages/products/products.module').then(m => m.ProductsModule) },
+  { path: routeConstants.register, loadChildren: () => import('./pages/register/register.module').then(m => m.RegisterModule) },
+  { path: routeConstants.login, loadChildren: () => import('./pages/login/login.module').then(m => m.LoginModule) },
+  {
+    path: routeConstants.admin,
+    loadChildren: () => import('./pages/admin/admin.module').then(m => m.AdminModule),
+    canActivate: [AuthGuard, AdminGuard]
+  },
+  { path: routeConstants.home, loadChildren: () => import('./pages/home/home.module').then(m => m.HomeModule) },
+];
+
+@NgModule({
+  imports: [RouterModule.forRoot(routes)],
+  exports: [RouterModule]
+})
+export class AppRoutingModule { }
+import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+import { AppComponent } from './app.component';
+
+describe('AppComponent', () => {
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [
+        RouterTestingModule, NgxsModule.forRoot([])
+      ],
+      declarations: [
+        AppComponent
+      ],
+    }).compileComponents();
+  });
+
+  it('should create the app', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+    expect(app).toBeTruthy();
+  });
+
+  it(`should have as title 'frontend'`, () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    const app = fixture.componentInstance;
+  });
+
+});
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { catchError, EMPTY, Observable, of, take } from 'rxjs';
+import { routeConstants } from './constants/route.constants';
+import { CheckMeAction, LogoutAction } from './store/user/user.actions';
+import { UserSelectors } from './store/user/user.selectors';
+
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.scss']
+})
+export class AppComponent implements OnInit {
+  routeConstants = routeConstants
+
+  @Select(UserSelectors.loggedIn)
+  loggedIn$!: Observable<boolean>
+
+  @Select(UserSelectors.isAdmin)
+  isAdmin$!: Observable<boolean>
+
+  constructor(private store: Store, private router: Router) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(new CheckMeAction())
+  }
+
+  logout() {
+    this.store.dispatch(new LogoutAction()).pipe(take(1)).subscribe(() => {
+      this.router.navigate([routeConstants.home])
+    })
+  }
+
+}
+import { ErrorHandler, NgModule } from '@angular/core';
+import { BrowserModule } from '@angular/platform-browser';
+
+import { AppRoutingModule } from './app-routing.module';
+import { AppComponent } from './app.component';
+import { HttpClientModule } from '@angular/common/http';
+import { StoreModuleModule } from './store/store-module.module'
+import { ExceptionHandlerService } from './services/exception-handler.service';
+import { ProductCardComponent } from './components/product-card/product-card.component';
+import { ProductSearchComponent } from './components/product-search/product-search.component';
+
+@NgModule({
+  declarations: [
+    AppComponent,
+  ],
+  imports: [
+    BrowserModule,
+    AppRoutingModule,
+    HttpClientModule,
+    StoreModuleModule
+  ],
+  providers: [{ provide: ErrorHandler, useClass: ExceptionHandlerService }],
+  bootstrap: [AppComponent],
+})
+export class AppModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterModule } from '@angular/router';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { ProductCardComponent } from './product-card.component';
+
+describe('ProductCardComponent', () => {
+  let component: ProductCardComponent;
+  let fixture: ComponentFixture<ProductCardComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ProductCardComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ProductCardComponent);
+    component = fixture.componentInstance;
+    component.product = { id: 0, categoryIds: [], name: '', description: '', enabled: false, price: 0 };
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { AddToCartAction } from 'src/app/store/cart/cart.actions';
+import { UserSelectors } from 'src/app/store/user/user.selectors';
+import { displayPrice } from 'src/app/utilities/price.utilities';
+
+@Component({
+  selector: 'app-product-card',
+  templateUrl: './product-card.component.html',
+  styleUrls: ['./product-card.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class ProductCardComponent implements OnInit {
+  routeConstants = routeConstants;
+
+  @Input()
+  product!: ProductDetailsDto;
+
+  @Select(UserSelectors.loggedIn)
+  loggedIn$!: Observable<boolean>;
+
+  @Select(UserSelectors.loading)
+  loading$!: Observable<boolean>;
+
+  constructor(private store: Store) { }
+
+  ngOnInit(): void {
+  }
+
+
+  displayPrice(price: number) {
+    return displayPrice(price)
+  }
+
+  addToCart() {
+    this.store.dispatch(new AddToCartAction(this.product))
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ProductCardComponent } from './product-card.component';
+import { RouterModule } from '@angular/router';
+
+
+
+@NgModule({
+  declarations: [
+    ProductCardComponent
+  ],
+  exports: [ProductCardComponent],
+  imports: [
+    CommonModule,
+    RouterModule
+  ]
+})
+export class ProductCardModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { ProductSearchComponent } from './product-search.component';
+
+describe('ProductSearchComponent', () => {
+  let component: ProductSearchComponent;
+  let fixture: ComponentFixture<ProductSearchComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ProductSearchComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ProductSearchComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+
+@Component({
+  selector: 'app-product-search',
+  templateUrl: './product-search.component.html',
+  styleUrls: ['./product-search.component.scss'],
+})
+export class ProductSearchComponent implements OnInit {
+  @Input()
+  categories!: CategoryDto[] | null
+
+  routeConstants = routeConstants;
+  searchControl = new FormControl('')
+  categoryControl = new FormControl('')
+
+  constructor(
+    private store: Store,
+    private router: Router,
+    private activatedRoute: ActivatedRoute
+  ) { }
+
+  ngOnInit(): void {
+    const searchTerm = this.activatedRoute.snapshot.queryParamMap.get(routeParams.productSearch) || '';
+    if (searchTerm) {
+      this.searchControl.setValue(searchTerm);
+    }
+    const categoryId = parseInt(this.activatedRoute.snapshot.queryParamMap.get(routeParams.categoryId) as string);
+    if (!isNaN(categoryId)) {
+      this.categoryControl.setValue((categoryId as any))
+    }
+
+  }
+
+  search(event: Event) {
+    event.preventDefault();
+    this.router.navigate([routeConstants.products], {
+      queryParamsHandling: 'merge',
+      queryParams: {
+        [routeParams.productSearch]: this.searchControl.value || null,
+        [routeParams.categoryId]: this.categoryControl.value || null
+      }
+    })
+  }
+
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { ProductSearchComponent } from './product-search.component';
+import { ReactiveFormsModule } from '@angular/forms';
+
+
+
+@NgModule({
+  declarations: [
+    ProductSearchComponent
+  ],
+  exports: [
+    ProductSearchComponent
+  ],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+  ]
+})
+export class ProductSearchModule { }
+export const routeConstants = {
+  home: '',
+  login: 'login',
+  register: 'register',
+  registerSuccess: 'success',
+  admin: 'admin',
+  productAdmin: 'product',
+  categoryAdmin: 'category',
+  products: 'products',
+  cart: 'cart',
+  checkout: 'checlout',
+  purchase: 'purchase'
+}
+
+export const routeParams = {
+  productId: 'pid',
+  categoryId: 'cid',
+  productSearch: 's',
+  purchaseId: 'prchid'
+}
+import { ProductDetailsDto } from "./product-details-dto";
+
+export interface CategoryDto {
+  id: number;
+  name: string;
+  description: string;
+  products?: ProductDetailsDto[]
+}
+export interface PaymentDto {
+  creditCardNumber: number;
+  address: string;
+}
+import { CategoryDto } from "./categpry-dto";
+import { ProductDetailsDto } from "./product-details-dto";
+
+export interface ProductAdminDto {
+  products: ProductDetailsDto[];
+  possibleCategories: CategoryDto[]
+}
+import { CategoryDto } from "./categpry-dto";
+
+export interface ProductDetailsDto {
+  id: number;
+  name: string;
+  description: string;
+  price: number;
+  enabled: boolean;
+  categoryIds: number[];
+  possibleCategories?: CategoryDto[];
+  imageUrl?: string;
+}
+export interface ProductSearchDto {
+  categoryId?: number;
+  productSearch?: string;
+}
+import { ProductDetailsDto } from "./product-details-dto";
+import { UserDto } from "./user-dto";
+
+export interface PurchaseDto {
+  id: number;
+  products: ProductDetailsDto[];
+  createdOn: string;
+  purchasedOn?: string;
+  creditCardNumber?: string;
+  address?: string;
+}
+export interface SaveCategoryDto {
+  name: string;
+  description: string;
+}
+import { CategoryDto } from "./categpry-dto";
+
+export interface SaveProductDto {
+  name: string;
+  description: string;
+  price: number;
+  enabled: boolean;
+  categoryIds: number[];
+  imageUrl?: string;
+}
+export interface UserDto {
+  email: string;
+  password: string;
+  isAdmin: boolean;
+}
+import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { AdminGuard } from './admin.guard';
+
+describe('AdminGuard', () => {
+  let guard: AdminGuard;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    });
+    guard = TestBed.inject(AdminGuard);
+  });
+
+  it('should be created', () => {
+    expect(guard).toBeTruthy();
+  });
+});
+import { Injectable } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { concatMap, Observable, of } from 'rxjs';
+import { routeConstants } from '../constants/route.constants';
+import { UserSelectors } from '../store/user/user.selectors';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AdminGuard implements CanActivate {
+  constructor(private store: Store, private router: Router) { }
+
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    return this.store.select(UserSelectors.isAdmin).pipe(concatMap(isAdmin => {
+      if (isAdmin) {
+        return of(true);
+      }
+      return this.router.navigate([routeConstants.login])
+    }));
+  }
+
+}
+import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { AuthGuard } from './auth.guard';
+
+describe('AuthGuard', () => {
+  let guard: AuthGuard;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    });
+    guard = TestBed.inject(AuthGuard);
+  });
+
+  it('should be created', () => {
+    expect(guard).toBeTruthy();
+  });
+});
+import { Injectable } from '@angular/core';
+import { ActivatedRouteSnapshot, CanActivate, Router, RouterStateSnapshot, UrlTree } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { concatMap, map, Observable, of } from 'rxjs';
+import { routeConstants } from '../constants/route.constants';
+import { UserSelectors } from '../store/user/user.selectors';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class AuthGuard implements CanActivate {
+  constructor(private store: Store, private router: Router) { }
+
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
+    return this.store.select(UserSelectors.loggedIn).pipe(concatMap(loggedIn => {
+      if (loggedIn) {
+        return of(true);
+      }
+      return this.router.navigate([routeConstants.login])
+    }))
+  }
+
+}
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { AdminComponent } from './admin.component';
+import { CategoryComponent } from './category/category.component';
+import { EditCategoryComponent } from './category/edit-category/edit-category.component';
+import { EditProductComponent } from './product/edit-product/edit-product.component';
+import { ProductComponent } from './product/product.component';
+
+const routes: Routes = [
+  { path: `${routeConstants.categoryAdmin}/:${routeParams.categoryId}`, component: EditCategoryComponent },
+  { path: routeConstants.categoryAdmin, component: CategoryComponent },
+  { path: `${routeConstants.productAdmin}/:${routeParams.productId}`, component: EditProductComponent },
+  { path: routeConstants.productAdmin, component: ProductComponent },
+  { path: '', component: AdminComponent }
+];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class AdminRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { AdminComponent } from './admin.component';
+
+describe('AdminComponent', () => {
+  let component: AdminComponent;
+  let fixture: ComponentFixture<AdminComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ AdminComponent ]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(AdminComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import {routeConstants} from "../../constants/route.constants";
+
+@Component({
+  selector: 'app-admin',
+  templateUrl: './admin.component.html',
+  styleUrls: ['./admin.component.scss']
+})
+export class AdminComponent implements OnInit {
+  routeConstants = routeConstants
+  constructor() { }
+
+  ngOnInit(): void {
+  }
+
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { AdminRoutingModule } from './admin-routing.module';
+import { AdminComponent } from './admin.component';
+import { ProductComponent } from './product/product.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { AddProductComponent } from './product/add-product/add-product.component';
+import { EditProductComponent } from './product/edit-product/edit-product.component';
+import { CategoryComponent } from './category/category.component';
+import { AddCategoryComponent } from './category/add-category/add-category.component';
+import { EditCategoryComponent } from './category/edit-category/edit-category.component';
+
+
+@NgModule({
+  declarations: [
+    AdminComponent,
+    ProductComponent,
+    AddProductComponent,
+    EditProductComponent,
+    CategoryComponent,
+    AddCategoryComponent,
+    EditCategoryComponent,
+  ],
+  imports: [
+    CommonModule,
+    AdminRoutingModule,
+    ReactiveFormsModule,
+  ]
+})
+export class AdminModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { AddCategoryComponent } from './add-category.component';
+
+describe('AddCategoryComponent', () => {
+  let component: AddCategoryComponent;
+  let fixture: ComponentFixture<AddCategoryComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [AddCategoryComponent],
+      imports: [NgxsModule.forRoot([])]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(AddCategoryComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { FormGroup, FormControl, Validators } from '@angular/forms';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { SaveCategoryDto } from 'src/app/dto/save-category-dto';
+import { AddCategoryAction } from 'src/app/store/category-admin/category-admin.actions';
+import { CategoryAdminSelectors } from 'src/app/store/category-admin/category-admin.selectors';
+import { ProductAdminSelectors } from 'src/app/store/product-admin/product-admin.selectors';
+
+@Component({
+  selector: 'app-add-category',
+  templateUrl: './add-category.component.html',
+  styleUrls: ['./add-category.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AddCategoryComponent {
+  addCategoryForm = new FormGroup({
+    name: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(100)
+    ]),
+    description: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(200)
+    ]),
+    price: new FormControl(1, [Validators.required, Validators.min(1), Validators.pattern('[0-9]+')])
+  })
+
+  @Select(CategoryAdminSelectors.error)
+  error$!: Observable<any[]>
+
+  constructor(private store: Store) { }
+
+
+  get name() {
+    return this.addCategoryForm.get('name');
+  }
+
+  get description() {
+    return this.addCategoryForm.get('description')
+  }
+
+  get price() {
+    return this.addCategoryForm.get('price')
+  }
+
+  submit(event: Event) {
+    event.preventDefault();
+    this.store.dispatch(new AddCategoryAction(this.addCategoryForm.value as SaveCategoryDto))
+      .subscribe(() => {
+        if (!this.store.selectSnapshot(CategoryAdminSelectors.error)) {
+          this.addCategoryForm.reset({ name: '', description: '' })
+        }
+      })
+  }
+
+}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
+import { StoreModuleModule } from 'src/app/store/store-module.module';
+
+import { CategoryComponent } from './category.component';
+
+describe('CategoryComponent', () => {
+  let component: CategoryComponent;
+  let fixture: ComponentFixture<CategoryComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [CategoryComponent],
+      imports: [NgxsModule.forRoot([])]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(CategoryComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { DeleteCategoryAction, LoadAllCategoriesAction } from 'src/app/store/category-admin/category-admin.actions';
+import { CategoryAdminSelectors } from 'src/app/store/category-admin/category-admin.selectors';
+
+@Component({
+  selector: 'app-category',
+  templateUrl: './category.component.html',
+  styleUrls: ['./category.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class CategoryComponent implements OnInit {
+
+  @Select(CategoryAdminSelectors.categories)
+  categories$!: Observable<any>
+
+  @Select(CategoryAdminSelectors.error)
+  error$!: Observable<boolean>
+
+  constructor(private store: Store) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(new LoadAllCategoriesAction())
+  }
+
+
+  delete(category: any) {
+    this.store.dispatch(new DeleteCategoryAction(category))
+  }
+
+
+  trackByFn(index: number, category: any) {
+    return category.id
+  }
+}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { EditCategoryComponent } from './edit-category.component';
+
+describe('EditCategoryComponent', () => {
+  let component: EditCategoryComponent;
+  let fixture: ComponentFixture<EditCategoryComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [EditCategoryComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(EditCategoryComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { FormGroup, FormControl, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { LoadCategoryDetailsAction, UpdateCategoryDetailsAction } from 'src/app/store/category-details/category-details.actions';
+import { CategoryDetailsSelectors } from 'src/app/store/category-details/category-details.selectors';
+
+@Component({
+  selector: 'app-edit-category',
+  templateUrl: './edit-category.component.html',
+  styleUrls: ['./edit-category.component.scss'],
+})
+export class EditCategoryComponent implements OnInit {
+  editCategoryForm = new FormGroup({
+    id: new FormControl({ value: 0, disabled: true }, [Validators.required, Validators.min(1)]),
+    name: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(100)
+    ]),
+    description: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(200)
+    ]),
+  })
+
+  @Select(CategoryDetailsSelectors.error)
+  error$!: Observable<any[]>
+
+  constructor(private store: Store,
+    private activatedRoute: ActivatedRoute,
+    private cd: ChangeDetectorRef,
+    private router: Router
+  ) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(
+      new LoadCategoryDetailsAction(
+        parseInt(this.activatedRoute.snapshot.paramMap.get(routeParams.categoryId) as string)
+      )
+    ).subscribe(() => {
+      const categoryDetails = this.store.selectSnapshot(CategoryDetailsSelectors.category)
+      if (categoryDetails.id) {
+        this.editCategoryForm.setValue(categoryDetails as any)
+        this.cd.detectChanges()
+      }
+    })
+  }
+
+
+  get id() {
+    return this.editCategoryForm.get('id')
+  }
+
+  get name() {
+    return this.editCategoryForm.get('name');
+  }
+
+  get description() {
+    return this.editCategoryForm.get('description')
+  }
+
+  submit(event: Event) {
+    event.preventDefault();
+    this.store.dispatch(new UpdateCategoryDetailsAction(
+      {
+        id: this.id?.value as number,
+        name: this.name?.value as string,
+        description: this.description?.value as string
+      }
+    ))
+      .subscribe(() => {
+        if (!this.store.selectSnapshot(CategoryDetailsSelectors.error)) {
+          this.router.navigate([routeConstants.admin, routeConstants.categoryAdmin])
+        }
+      })
+  }
+
+}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { AddProductComponent } from './add-product.component';
+
+describe('AddProductComponent', () => {
+  let component: AddProductComponent;
+  let fixture: ComponentFixture<AddProductComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [AddProductComponent],
+      imports: [NgxsModule.forRoot([])]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(AddProductComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { FormGroup, FormControl, Validators } from '@angular/forms';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { SaveProductDto } from 'src/app/dto/save-product-dto';
+import { LoadAllProductsAction, AddProductAction } from 'src/app/store/product-admin/product-admin.actions';
+import { ProductAdminSelectors } from 'src/app/store/product-admin/product-admin.selectors';
+
+@Component({
+  selector: 'app-add-product',
+  templateUrl: './add-product.component.html',
+  styleUrls: ['./add-product.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class AddProductComponent {
+
+  addProductForm = new FormGroup({
+    name: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(100)
+    ]),
+    description: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(200)
+    ]),
+    price: new FormControl(1, [Validators.required, Validators.min(1), Validators.pattern('[0-9]+')]),
+    enabled: new FormControl(true),
+    categoryIds: new FormControl([]),
+    imageUrl: new FormControl(''),
+  })
+
+  @Select(ProductAdminSelectors.possibleCategories)
+  possibleCategories$!: Observable<CategoryDto[]>
+
+  @Select(ProductAdminSelectors.error)
+  error$!: Observable<any[]>
+
+  constructor(private store: Store) { }
+
+
+  get name() {
+    return this.addProductForm.get('name');
+  }
+
+  get description() {
+    return this.addProductForm.get('description')
+  }
+
+  get price() {
+    return this.addProductForm.get('price')
+  }
+
+  get enabled() {
+    return this.addProductForm.get('enabled')
+  }
+
+  get imageUrl() {
+    return this.addProductForm.get('imageUrl')
+  }
+
+  submit(event: Event) {
+    event.preventDefault();
+    console.log(this.addProductForm.value)
+    this.store.dispatch(new AddProductAction(this.addProductForm.value as SaveProductDto))
+      .subscribe(() => {
+        if (!this.store.selectSnapshot(ProductAdminSelectors.error)) {
+          this.addProductForm.reset({ name: '', description: '', price: 1 })
+        }
+      })
+  }
+
+}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { EditProductComponent } from './edit-product.component';
+
+describe('EditProductComponent', () => {
+  let component: EditProductComponent;
+  let fixture: ComponentFixture<EditProductComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [EditProductComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(EditProductComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { FormGroup, FormControl, Validators } from '@angular/forms';
+import { ActivatedRoute, Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { LoadProductDetailsAction, UpdateProductDetailsAction } from 'src/app/store/product-details/product-details.actions';
+import { ProductDetailsSelectors } from 'src/app/store/product-details/product-details.selectors';
+
+@Component({
+  selector: 'app-edit-product',
+  templateUrl: './edit-product.component.html',
+  styleUrls: ['./edit-product.component.scss'],
+})
+export class EditProductComponent implements OnInit {
+  editProductForm = new FormGroup({
+    id: new FormControl({ value: 0, disabled: true }, [Validators.required, Validators.min(1)]),
+    name: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(100)
+    ]),
+    description: new FormControl('', [
+      Validators.required, Validators.minLength(3), Validators.maxLength(200)
+    ]),
+    price: new FormControl(1, [Validators.required, Validators.min(1), Validators.pattern('[0-9]+')]),
+    enabled: new FormControl<boolean>(true),
+    categoryIds: new FormControl([]),
+    imageUrl: new FormControl(''),
+  })
+
+  @Select(ProductDetailsSelectors.possibleCategories)
+  possibleCategories$!: Observable<CategoryDto[]>
+
+
+  @Select(ProductDetailsSelectors.error)
+  error$!: Observable<boolean>
+
+  constructor(
+    private store: Store,
+    private activatedRoute: ActivatedRoute,
+    private cd: ChangeDetectorRef,
+    private router: Router
+  ) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(
+      new LoadProductDetailsAction(
+        parseInt(this.activatedRoute.snapshot.paramMap.get(routeParams.productId) as string)
+      )
+    ).subscribe(() => {
+      const productDetails = this.store.selectSnapshot(ProductDetailsSelectors.productDetails)
+      if (productDetails.id) {
+        this.editProductForm.setValue(productDetails as any)
+      }
+    })
+  }
+
+  get id() {
+    return this.editProductForm.get('id');
+  }
+
+  get name() {
+    return this.editProductForm.get('name');
+  }
+
+  get description() {
+    return this.editProductForm.get('description')
+  }
+
+  get price() {
+    return this.editProductForm.get('price')
+  }
+
+  get enabled() {
+    return this.editProductForm.get('enabled')
+  }
+
+  get categoryIds() {
+    return this.editProductForm.get('categoryIds')
+  }
+
+  get imageUrl() {
+    return this.editProductForm.get('imageUrl')
+  }
+
+  submit(event: Event) {
+    event.preventDefault();
+    this.store
+      .dispatch(new UpdateProductDetailsAction({
+        id: this.id?.value as number,
+        name: this.name?.value as string,
+        description: this.description?.value as string,
+        price: parseInt(this.price?.value as any),
+        enabled: this.enabled?.value as boolean,
+        categoryIds: this.categoryIds?.value as number[],
+        imageUrl: this.imageUrl?.value as string
+      }))
+      .subscribe(() => {
+        this.router.navigate([routeConstants.admin, routeConstants.productAdmin])
+      })
+  }
+}
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { ProductComponent } from './product.component';
+
+describe('ProductComponent', () => {
+  let component: ProductComponent;
+  let fixture: ComponentFixture<ProductComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ProductComponent],
+      imports: [NgxsModule.forRoot([])]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ProductComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { DeleteProductAction, LoadAllProductsAction } from 'src/app/store/product-admin/product-admin.actions';
+import { ProductAdminSelectors } from 'src/app/store/product-admin/product-admin.selectors';
+
+@Component({
+  selector: 'app-product',
+  templateUrl: './product.component.html',
+  styleUrls: ['./product.component.scss']
+})
+export class ProductComponent implements OnInit {
+
+  @Select(ProductAdminSelectors.products)
+  products$!: Observable<any[]>
+
+  @Select(ProductAdminSelectors.error)
+  error$!: Observable<boolean>
+
+  constructor(private store: Store) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(new LoadAllProductsAction())
+  }
+
+  delete(product: any) {
+    this.store.dispatch(new DeleteProductAction(product))
+  }
+
+
+  trackByFn(index: number, product: any) {
+    return product.id
+  }
+}
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { CartComponent } from './cart.component';
+
+const routes: Routes = [{ path: '', component: CartComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class CartRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { CartComponent } from './cart.component';
+
+describe('CartComponent', () => {
+  let component: CartComponent;
+  let fixture: ComponentFixture<CartComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [CartComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(CartComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants } from 'src/app/constants/route.constants';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { PurchaseDto } from 'src/app/dto/purchase-dto';
+import { DeleteFromCartAction, LoadCartAction } from 'src/app/store/cart/cart.actions';
+import { CartSelectors } from 'src/app/store/cart/cart.selectors';
+import { displayPrice } from 'src/app/utilities/price.utilities';
+
+@Component({
+  selector: 'app-cart',
+  templateUrl: './cart.component.html',
+  styleUrls: ['./cart.component.scss']
+})
+export class CartComponent implements OnInit {
+
+  @Select(CartSelectors.cart)
+  cart$!: Observable<PurchaseDto>;
+
+  @Select(CartSelectors.isEmptyCart)
+  isEmptyCart$!: Observable<boolean>;
+
+  constructor(private store: Store, private router: Router) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(new LoadCartAction())
+  }
+
+  delete(productId: number) {
+    this.store.dispatch(new DeleteFromCartAction(productId))
+  }
+
+  displayPrice(price: number): string {
+    return displayPrice(price)
+  }
+
+  getTotal(products: ProductDetailsDto[]) {
+    return displayPrice(products.reduce((accumulator, product) => {
+      return accumulator += product.price;
+    }, 0))
+  }
+
+  checkout() {
+    this.router.navigate([routeConstants.checkout])
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { CartRoutingModule } from './cart-routing.module';
+import { CartComponent } from './cart.component';
+
+
+@NgModule({
+  declarations: [
+    CartComponent
+  ],
+  imports: [
+    CommonModule,
+    CartRoutingModule
+  ]
+})
+export class CartModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { CheckoutComponent } from './checkout.component';
+
+const routes: Routes = [{ path: '', component: CheckoutComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class CheckoutRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { CheckoutComponent } from './checkout.component';
+
+describe('CheckoutComponent', () => {
+  let component: CheckoutComponent;
+  let fixture: ComponentFixture<CheckoutComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [CheckoutComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(CheckoutComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants } from 'src/app/constants/route.constants';
+import { ClearCartStateAction, LoadCartAction, PaymentAction } from 'src/app/store/cart/cart.actions';
+import { CartSelectors } from 'src/app/store/cart/cart.selectors';
+
+@Component({
+  selector: 'app-checkout',
+  templateUrl: './checkout.component.html',
+  styleUrls: ['./checkout.component.scss']
+})
+export class CheckoutComponent implements OnInit {
+  @Select(CartSelectors.total)
+  total$!: Observable<string>
+
+  @Select(CartSelectors.isEmptyCart)
+  isEmptyCart$!: Observable<boolean>
+
+  @Select(CartSelectors.loading)
+  loading$!: Observable<boolean>
+
+  @Select(CartSelectors.error)
+  error$!: Observable<boolean>
+
+  checkoutForm = new FormGroup({
+    card: new FormControl('', [Validators.required, Validators.pattern('^[0-9]+$')]),
+    address: new FormControl('', [Validators.required])
+  })
+
+  get card() {
+    return this.checkoutForm.get('card') as FormControl
+  }
+
+  get address() {
+    return this.checkoutForm.get('address') as FormControl
+  }
+
+  constructor(private store: Store, private router: Router) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(new LoadCartAction())
+  }
+
+
+  payNow(event: Event) {
+    event.preventDefault()
+    this.store.dispatch(new PaymentAction({
+      creditCardNumber: parseInt(this.card.value),
+      address: this.address.value
+    })).subscribe(() => {
+      if (this.store.selectSnapshot(CartSelectors.error)) {
+        return;
+      }
+      this.router.navigate([routeConstants.purchase, this.store.selectSnapshot(CartSelectors.purchaseId)])
+      this.store.dispatch(new ClearCartStateAction())
+    })
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { CheckoutRoutingModule } from './checkout-routing.module';
+import { CheckoutComponent } from './checkout.component';
+import { ReactiveFormsModule } from '@angular/forms';
+
+
+@NgModule({
+  declarations: [
+    CheckoutComponent
+  ],
+  imports: [
+    CommonModule,
+    CheckoutRoutingModule,
+    ReactiveFormsModule
+  ]
+})
+export class CheckoutModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { HomeComponent } from './home.component';
+
+const routes: Routes = [{ path: '', component: HomeComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class HomeRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { HomeComponent } from './home.component';
+
+describe('HomeComponent', () => {
+  let component: HomeComponent;
+  let fixture: ComponentFixture<HomeComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [HomeComponent],
+      imports: [NgxsModule.forRoot([])]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(HomeComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { FormControl } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { LoadHomeAction } from 'src/app/store/home/home.actions';
+import { HomeSelectors } from 'src/app/store/home/home.selectors';
+
+@Component({
+  selector: 'app-home',
+  templateUrl: './home.component.html',
+  styleUrls: ['./home.component.scss']
+})
+export class HomeComponent implements OnInit {
+  @Select(HomeSelectors.categories)
+  categories$!: Observable<CategoryDto[]>;
+
+  @Select(HomeSelectors.topProducts)
+  topProducts$!: Observable<ProductDetailsDto[]>
+
+  routeConstants = routeConstants;
+
+  constructor(private store: Store) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(new LoadHomeAction())
+  }
+
+
+
+
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { HomeRoutingModule } from './home-routing.module';
+import { HomeComponent } from './home.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { ProductCardModule } from 'src/app/components/product-card/product-card.module';
+import { CarouselModule } from 'ngx-bootstrap/carousel';
+import { ProductSearchModule } from 'src/app/components/product-search/product-search.module';
+
+
+@NgModule({
+  declarations: [
+    HomeComponent
+  ],
+  imports: [
+    CommonModule,
+    HomeRoutingModule,
+    ProductSearchModule,
+    CarouselModule.forRoot(),
+    ProductCardModule
+  ]
+})
+export class HomeModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { LoginComponent } from './login.component';
+
+const routes: Routes = [{ path: '', component: LoginComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class LoginRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { LoginComponent } from './login.component';
+
+describe('LoginComponent', () => {
+  let component: LoginComponent;
+  let fixture: ComponentFixture<LoginComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [LoginComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(LoginComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { FormControl, FormGroup, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { BehaviorSubject, catchError, Observable, of, take } from 'rxjs';
+import { routeConstants } from 'src/app/constants/route.constants';
+import { ApiService } from 'src/app/services/api.service';
+import { LoginAction } from 'src/app/store/user/user.actions';
+import { UserSelectors } from 'src/app/store/user/user.selectors';
+
+@Component({
+  selector: 'app-login',
+  templateUrl: './login.component.html',
+  styleUrls: ['./login.component.scss']
+})
+export class LoginComponent implements OnInit {
+  loginForm = new FormGroup({
+    email: new FormControl('', Validators.required),
+    password: new FormControl('', Validators.required)
+  })
+
+  @Select(UserSelectors.loading)
+  loading$!: Observable<boolean>
+
+  @Select(UserSelectors.error)
+  error$!: Observable<boolean>
+
+  constructor(private store: Store, private router: Router) { }
+
+  ngOnInit(): void {
+  }
+
+  login(event: Event) {
+    event.preventDefault()
+    this.store.dispatch(
+      new LoginAction(this.email?.value as string, this.password?.value as string)
+    ).pipe(take(1)).subscribe(() => {
+      if (!this.store.selectSnapshot(UserSelectors.error)) {
+        this.router.navigate([routeConstants.home])
+      }
+    })
+  }
+
+  get email() {
+    return this.loginForm.get('email')
+  }
+
+  get password() {
+    return this.loginForm.get('password')
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { LoginRoutingModule } from './login-routing.module';
+import { LoginComponent } from './login.component';
+import { ReactiveFormsModule } from '@angular/forms';
+
+
+@NgModule({
+  declarations: [
+    LoginComponent
+  ],
+  imports: [
+    CommonModule,
+    LoginRoutingModule,
+    ReactiveFormsModule,
+  ]
+})
+export class LoginModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { ProductDetailsComponent } from './product-details.component';
+
+const routes: Routes = [{ path: '', component: ProductDetailsComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class ProductDetailsRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { ProductDetailsComponent } from './product-details.component';
+
+describe('ProductDetailsComponent', () => {
+  let component: ProductDetailsComponent;
+  let fixture: ComponentFixture<ProductDetailsComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ProductDetailsComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ProductDetailsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeParams } from 'src/app/constants/route.constants';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { AddToCartAction } from 'src/app/store/cart/cart.actions';
+import { CartSelectors } from 'src/app/store/cart/cart.selectors';
+import { CartState } from 'src/app/store/cart/cart.state';
+import { LoadProductDetailsAction } from 'src/app/store/product-details/product-details.actions';
+import { ProductDetailsSelectors } from 'src/app/store/product-details/product-details.selectors';
+import { UserSelectors } from 'src/app/store/user/user.selectors';
+import { displayPrice } from 'src/app/utilities/price.utilities';
+
+@Component({
+  selector: 'app-product-details',
+  templateUrl: './product-details.component.html',
+  styleUrls: ['./product-details.component.scss']
+})
+export class ProductDetailsComponent implements OnInit {
+
+  @Select(ProductDetailsSelectors.productDetails)
+  product$!: Observable<ProductDetailsDto>
+
+  @Select(UserSelectors.loggedIn)
+  loggedIn$!: Observable<boolean>
+
+  @Select(CartSelectors.loading)
+  loading$!: Observable<boolean>
+
+  constructor(private store: Store, private activatedRoute: ActivatedRoute) { }
+
+  ngOnInit(): void {
+    this.activatedRoute.params.subscribe(params => {
+      this.store.dispatch(new LoadProductDetailsAction(params[routeParams.productId]))
+    })
+  }
+
+  displayPrice(price: number) {
+    return displayPrice(price)
+  }
+
+  addToCart(product: ProductDetailsDto) {
+    this.store.dispatch(new AddToCartAction(product))
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { ProductDetailsRoutingModule } from './product-details-routing.module';
+import { ProductDetailsComponent } from './product-details.component';
+
+
+@NgModule({
+  declarations: [
+    ProductDetailsComponent
+  ],
+  imports: [
+    CommonModule,
+    ProductDetailsRoutingModule
+  ]
+})
+export class ProductDetailsModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { ProductsComponent } from './products.component';
+
+const routes: Routes = [{ path: '', component: ProductsComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class ProductsRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { ProductsComponent } from './products.component';
+
+describe('ProductsComponent', () => {
+  let component: ProductsComponent;
+  let fixture: ComponentFixture<ProductsComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ProductsComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(ProductsComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeParams } from 'src/app/constants/route.constants';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { LoadAllProductsAction } from 'src/app/store/product-admin/product-admin.actions';
+import { LoadSearchProductsAction } from 'src/app/store/products/products.actions';
+import { ProductsSelectors } from 'src/app/store/products/products.selectors';
+
+@Component({
+  selector: 'app-products',
+  templateUrl: './products.component.html',
+  styleUrls: ['./products.component.scss']
+})
+export class ProductsComponent implements OnInit {
+  @Select(ProductsSelectors.categories)
+  categories$!: Observable<CategoryDto[]>
+
+  @Select(ProductsSelectors.products)
+  products$!: Observable<ProductDetailsDto[]>
+
+  constructor(private store: Store, private activatedRoute: ActivatedRoute) { }
+
+  ngOnInit(): void {
+    this.activatedRoute.queryParams.subscribe(params => {
+      const productSearch = params[routeParams.productSearch]
+      const categoryId = parseInt(params[routeParams.categoryId])
+      this.store.dispatch(new LoadSearchProductsAction({ productSearch, categoryId }))
+    })
+  }
+
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { ProductsRoutingModule } from './products-routing.module';
+import { ProductsComponent } from './products.component';
+import { ProductSearchModule } from 'src/app/components/product-search/product-search.module';
+import { ProductCardModule } from 'src/app/components/product-card/product-card.module';
+
+
+@NgModule({
+  declarations: [
+    ProductsComponent
+  ],
+  imports: [
+    CommonModule,
+    ProductsRoutingModule,
+    ProductSearchModule,
+    ProductCardModule
+  ]
+})
+export class ProductsModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { routeParams } from 'src/app/constants/route.constants';
+import { PurchaseComponent } from './purchase.component';
+
+const routes: Routes = [{ path: `:${routeParams.purchaseId}`, component: PurchaseComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class PurchaseRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { PurchaseComponent } from './purchase.component';
+
+describe('PurchaseComponent', () => {
+  let component: PurchaseComponent;
+  let fixture: ComponentFixture<PurchaseComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [PurchaseComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(PurchaseComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants, routeParams } from 'src/app/constants/route.constants';
+import { PurchaseDto } from 'src/app/dto/purchase-dto';
+import { LoadPurchaseAction } from 'src/app/store/purchases/purchases.actions';
+import { PurchasesSelectors } from 'src/app/store/purchases/purchases.selectors';
+
+@Component({
+  selector: 'app-purchase',
+  templateUrl: './purchase.component.html',
+  styleUrls: ['./purchase.component.scss']
+})
+export class PurchaseComponent implements OnInit {
+  routeConstants = routeConstants
+  @Select(PurchasesSelectors.total)
+  total$!: Observable<string>
+
+  @Select(PurchasesSelectors.purchase)
+  purchase$!: Observable<PurchaseDto>
+
+  constructor(private store: Store, private activatedRoute: ActivatedRoute) { }
+
+  ngOnInit(): void {
+    this.store.dispatch(
+      new LoadPurchaseAction(parseInt(this.activatedRoute.snapshot.paramMap.get(routeParams.purchaseId) as string))
+    )
+  }
+
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { PurchaseRoutingModule } from './purchase-routing.module';
+import { PurchaseComponent } from './purchase.component';
+
+
+@NgModule({
+  declarations: [
+    PurchaseComponent
+  ],
+  imports: [
+    CommonModule,
+    PurchaseRoutingModule
+  ]
+})
+export class PurchaseModule { }
+import { NgModule } from '@angular/core';
+import { RouterModule, Routes } from '@angular/router';
+import { routeConstants } from 'src/app/constants/route.constants';
+import { RegisterComponent } from './register.component';
+import { SuccessComponent } from './success/success.component';
+
+const routes: Routes = [{ path: routeConstants.registerSuccess, component: SuccessComponent }, { path: '', component: RegisterComponent }];
+
+@NgModule({
+  imports: [RouterModule.forChild(routes)],
+  exports: [RouterModule]
+})
+export class RegisterRoutingModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { RegisterComponent } from './register.component';
+
+describe('RegisterComponent', () => {
+  let component: RegisterComponent;
+  let fixture: ComponentFixture<RegisterComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [RegisterComponent],
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    })
+      .compileComponents();
+
+    fixture = TestBed.createComponent(RegisterComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { Component, OnInit } from '@angular/core'
+import { FormControl, FormGroup, Validators } from '@angular/forms'
+import { Router } from '@angular/router';
+import { Select, Store } from '@ngxs/store';
+import { Observable } from 'rxjs';
+import { routeConstants } from 'src/app/constants/route.constants';
+import { RegisterAction } from 'src/app/store/user/user.actions';
+import { UserSelectors } from 'src/app/store/user/user.selectors';
+
+@Component({
+  selector: 'app-register',
+  templateUrl: './register.component.html',
+  styleUrls: ['./register.component.scss'],
+})
+export class RegisterComponent implements OnInit {
+  registerForm = new FormGroup({
+    email: new FormControl('', [Validators.required]),
+    password: new FormControl('', [
+      Validators.required,
+      Validators.minLength(5),
+      Validators.maxLength(200),
+    ]),
+  })
+
+  @Select(UserSelectors.loading)
+  loading$!: Observable<boolean>
+
+  @Select(UserSelectors.error)
+  error$!: Observable<boolean>
+
+  constructor(private store: Store, private router: Router) { }
+
+  ngOnInit(): void {
+  }
+
+  register(event: Event) {
+    event.preventDefault();
+    this.store
+      .dispatch(new RegisterAction(this.email?.value as string, this.password?.value as string))
+      .subscribe(() => {
+        if (!this.store.selectSnapshot(UserSelectors.error)) {
+          this.router.navigate([routeConstants.register, routeConstants.registerSuccess])
+        }
+      })
+  }
+
+  get email() {
+    return this.registerForm.get('email')
+  }
+
+  get password() {
+    return this.registerForm.get('password')
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+import { RegisterRoutingModule } from './register-routing.module';
+import { RegisterComponent } from './register.component';
+import { ReactiveFormsModule } from '@angular/forms';
+import { SuccessComponent } from './success/success.component';
+
+
+@NgModule({
+  declarations: [
+    RegisterComponent,
+    SuccessComponent
+  ],
+  imports: [
+    CommonModule,
+    RegisterRoutingModule,
+    ReactiveFormsModule
+  ]
+})
+export class RegisterModule { }
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+
+import { SuccessComponent } from './success.component';
+
+describe('SuccessComponent', () => {
+  let component: SuccessComponent;
+  let fixture: ComponentFixture<SuccessComponent>;
+
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      declarations: [ SuccessComponent ]
+    })
+    .compileComponents();
+
+    fixture = TestBed.createComponent(SuccessComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('should create', () => {
+    expect(component).toBeTruthy();
+  });
+});
+import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core';
+import { routeConstants } from 'src/app/constants/route.constants';
+
+@Component({
+  selector: 'app-success',
+  templateUrl: './success.component.html',
+  styleUrls: ['./success.component.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush
+})
+export class SuccessComponent implements OnInit {
+  routeConstants = routeConstants
+  constructor() { }
+
+  ngOnInit(): void {
+  }
+
+}
+import { HttpClientModule } from '@angular/common/http';
+import { TestBed } from '@angular/core/testing';
+import { NgxsModule } from '@ngxs/store';
+import { ApiService } from './api.service';
+
+
+describe('ApiService', () => {
+  let service: ApiService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+
+      imports: [NgxsModule.forRoot([]), HttpClientModule]
+    });
+    service = TestBed.inject(ApiService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+import {HttpClient, HttpHeaders} from '@angular/common/http';
+import {Injectable} from '@angular/core';
+import {Store} from '@ngxs/store';
+import {Observable} from 'rxjs';
+import {environment} from 'src/environments/environment';
+import {CategoryDto} from '../dto/categpry-dto';
+import {PaymentDto} from '../dto/payment-dto';
+import {ProductAdminDto} from '../dto/product-admin-dto';
+import {ProductDetailsDto} from '../dto/product-details-dto';
+import {ProductSearchDto} from '../dto/product-search-dto';
+import {PurchaseDto} from '../dto/purchase-dto';
+import {SaveCategoryDto} from '../dto/save-category-dto';
+import {SaveProductDto} from '../dto/save-product-dto';
+import {UserSelectors} from '../store/user/user.selectors';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ApiService {
+
+  constructor(private http: HttpClient, private store: Store) {
+  }
+
+  me() {
+    return this.http.get(environment.api + '/user/login', {
+      responseType: 'json',
+      withCredentials: true,
+      headers: new HttpHeaders({
+        Authorization:
+          `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+        ['Content-type']: 'application/json',
+        ['X-Requested-With']: 'XMLHttpRequest'
+      })
+    })
+  }
+
+  login(email: string, password: string) {
+    return this.http.get(environment.api + '/user/login', {
+      responseType: 'json',
+      withCredentials: true,
+      headers: new HttpHeaders({
+        Authorization: `Basic ${window.btoa(`${email}:${password}`)}`,
+        ['Content-type']: 'application/json',
+        ['X-Requested-With']: 'XMLHttpRequest'
+      })
+    })
+  }
+
+  register(email: string, password: string) {
+    return this.http.post(environment.api + '/user/register',
+      { email, password },
+      {
+        withCredentials: false,
+        headers: new HttpHeaders({
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  logout() {
+    return this.http.get(environment.api + '/user/logout')
+  }
+
+  searchAllProducts(productSearch: ProductSearchDto): Observable<ProductAdminDto> {
+    return this.http.post(environment.api + '/products', productSearch,
+      {
+        responseType: 'json',
+        withCredentials: false,
+        headers: new HttpHeaders({
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  getAllAdminProducts(): Observable<ProductAdminDto> {
+    return this.http.get(environment.api + '/admin/products', {
+      responseType: 'json',
+      withCredentials: true,
+      headers: new HttpHeaders({
+        Authorization:
+          `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+        ['Content-type']: 'application/json',
+        ['Response-type']: 'application/json',
+        ['X-Requested-With']: 'XMLHttpRequest'
+      })
+    }) as Observable<any>
+  }
+
+  addProduct(product: SaveProductDto) {
+    return this.http.post(environment.api + '/admin/product', product,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  getProductDetails(productId: number) {
+    return this.http.get(`${environment.api}/products/${productId}`,
+      {
+        responseType: 'json',
+        withCredentials: false,
+        headers: new HttpHeaders({
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  updateProduct(product: ProductDetailsDto) {
+    return this.http.put(environment.api + '/admin/product', product,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  deleteProduct(productId: number) {
+    return this.http.delete(`${environment.api}/admin/product/${productId}`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  getAllCategories() {
+    return this.http.get(environment.api + '/categories')
+  }
+
+  addCategory(category: SaveCategoryDto) {
+    return this.http.post(environment.api + '/admin/category', category,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  getCategoryDetails(categoryId: number) {
+    return this.http.get(`${environment.api}/categories/${categoryId}`,
+      {
+        responseType: 'json',
+        withCredentials: false,
+        headers: new HttpHeaders({
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  updateCategory(category: CategoryDto) {
+    return this.http.put(environment.api + '/admin/category', category,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  deleteCategory(categoryId: number): Observable<CategoryDto[]> {
+    return this.http.delete(`${environment.api}/admin/category/${categoryId}`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  getHome(): Observable<ProductAdminDto> {
+    return this.http.get(`${environment.api}/products/top`,
+      {
+        responseType: 'json',
+        withCredentials: false,
+        headers: new HttpHeaders({
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  addToCart(productId: number) {
+    return this.http.post(environment.api + '/cart', productId,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      })
+  }
+
+  getCart(): Observable<PurchaseDto> {
+    return this.http.get(environment.api + '/cart', {
+      responseType: 'json',
+      withCredentials: true,
+      headers: new HttpHeaders({
+        Authorization:
+          `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+        ['Content-type']: 'application/json',
+        ['Response-type']: 'application/json',
+        ['X-Requested-With']: 'XMLHttpRequest'
+      })
+    }) as Observable<any>
+  }
+
+  deleteFromCart(productId: number): Observable<PurchaseDto> {
+    return this.http.delete(`${environment.api}/cart/${productId}`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  pay(payment: PaymentDto): Observable<void> {
+    return this.http.post(environment.api + '/checkout', payment,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  getPurchaseDetails(purchaseId: number): Observable<PurchaseDto> {
+    return this.http.get(`${environment.api}/purchase/${purchaseId}`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+
+  getPurchases(): Observable<PurchaseDto[]> {
+    return this.http.get(`${environment.api}/purchase`,
+      {
+        responseType: 'json',
+        withCredentials: true,
+        headers: new HttpHeaders({
+          Authorization:
+            `Basic ${window.btoa(`${this.store.selectSnapshot(UserSelectors.email)}:${this.store.selectSnapshot(UserSelectors.password)}`)}`,
+          ['Content-type']: 'application/json',
+          ['Response-type']: 'application/json',
+          ['X-Requested-With']: 'XMLHttpRequest'
+        })
+      }) as Observable<any>
+  }
+}
+import { TestBed } from '@angular/core/testing';
+import { RouterTestingModule } from '@angular/router/testing';
+import { NgxsModule } from '@ngxs/store';
+
+import { ExceptionHandlerService } from './exception-handler.service';
+
+describe('ExceptionHandlerService', () => {
+  let service: ExceptionHandlerService;
+
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([]), RouterTestingModule]
+    });
+    service = TestBed.inject(ExceptionHandlerService);
+  });
+
+  it('should be created', () => {
+    expect(service).toBeTruthy();
+  });
+});
+import { ErrorHandler, Injectable } from '@angular/core';
+import { Router } from '@angular/router';
+import { Store } from '@ngxs/store';
+import { routeConstants } from '../constants/route.constants';
+import { LogoutAction } from '../store/user/user.actions';
+
+@Injectable({
+  providedIn: 'root'
+})
+export class ExceptionHandlerService implements ErrorHandler {
+
+  constructor(private store: Store, private router: Router) { }
+
+  handleError(error: any): void {
+    if (error?.status === 401) {
+      this.store.dispatch(new LogoutAction()).subscribe(() => {
+        this.router.navigate([routeConstants.login])
+      })
+    }
+  }
+}
+import { PaymentDto } from "src/app/dto/payment-dto";
+import { ProductDetailsDto } from "src/app/dto/product-details-dto";
+
+export class AddToCartAction {
+  static readonly type = '[Cart] Add item';
+  constructor(public product: ProductDetailsDto) { }
+}
+
+
+export class LoadCartAction {
+  static readonly type = '[Cart] Load cart';
+  constructor() { }
+}
+
+export class DeleteFromCartAction {
+  static readonly type = '[Cart] Delete from cart';
+  constructor(public productId: number) { }
+}
+
+export class PaymentAction {
+  static readonly type = '[Cart] Pay cart';
+  constructor(public payment: PaymentDto) { }
+}
+
+export class ClearCartStateAction {
+  static readonly type = '[Cart] Clear cart state';
+  constructor() { }
+}
+import { Selector } from "@ngxs/store"
+import { CategoryDto } from "src/app/dto/categpry-dto"
+import { ProductDetailsDto } from "src/app/dto/product-details-dto"
+import { PurchaseDto } from "src/app/dto/purchase-dto"
+import { displayPrice } from "src/app/utilities/price.utilities"
+import { CartState, CartStateModel } from "./cart.state"
+
+export class CartSelectors {
+  @Selector([CartState])
+  public static loading(state: CartStateModel): boolean {
+    return state.loading
+  }
+
+  @Selector([CartState])
+  public static error(state: CartStateModel): boolean {
+    return state.error
+  }
+
+  @Selector([CartState])
+  public static cart(state: CartStateModel): PurchaseDto {
+    return state.cart
+  }
+
+  @Selector([CartState])
+  public static total(state: CartStateModel): string {
+    return displayPrice(state.cart.products.reduce((accumulator, product) => accumulator += product.price, 0))
+  }
+
+  @Selector([CartState])
+  public static isEmptyCart(state: CartStateModel): boolean {
+    return state.cart.products.length === 0
+  }
+
+  @Selector([CartState])
+  public static purchaseId(state: CartStateModel): number {
+    return state.cart.id
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { CartState } from './cart.state';
+
+describe('Cart actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([CartState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { catchError, EMPTY, tap } from 'rxjs';
+import { PurchaseDto } from 'src/app/dto/purchase-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { AddToCartAction, ClearCartStateAction, DeleteFromCartAction, LoadCartAction, PaymentAction } from './cart.actions';
+
+export class CartStateModel {
+  loading!: boolean;
+  cart!: PurchaseDto;
+  error!: boolean;
+}
+
+const defaults: CartStateModel = {
+  loading: false,
+  error: false,
+  cart: {
+    id: 0,
+    products: [],
+    createdOn: '',
+  }
+};
+
+@State<CartStateModel>({
+  name: 'cart',
+  defaults
+})
+@Injectable()
+export class CartState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(AddToCartAction)
+  add(ctx: StateContext<CartStateModel>, { product }: AddToCartAction) {
+    ctx.patchState({ loading: true })
+
+    return this.apiService.addToCart(product.id).pipe(tap(response => {
+      ctx.patchState({ loading: false })
+    }))
+  }
+
+  @Action(LoadCartAction)
+  loadCartAction(ctx: StateContext<CartStateModel>) {
+    ctx.patchState({ loading: true })
+    return this.apiService.getCart().pipe(tap(response => {
+      ctx.patchState({ loading: false, cart: response })
+    }))
+  }
+
+  @Action(PaymentAction)
+  pay(ctx: StateContext<CartStateModel>, { payment }: PaymentAction) {
+    ctx.patchState({ loading: true, error: false })
+    return this.apiService.pay(payment).pipe(
+      catchError(reponse => {
+        console.error(reponse)
+        ctx.patchState({ error: true })
+        return EMPTY
+      }),
+      tap(() => {
+        ctx.patchState({ loading: false })
+      }))
+  }
+
+  @Action(DeleteFromCartAction)
+  deleteFromCart(ctx: StateContext<CartStateModel>, { productId }: DeleteFromCartAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.deleteFromCart(productId).pipe(tap(response => {
+      ctx.patchState({ loading: false, cart: response })
+    }))
+  }
+
+  @Action(ClearCartStateAction)
+  clear(ctx: StateContext<CartStateModel>,) {
+    ctx.setState(defaults)
+  }
+}
+import { CategoryDto } from "src/app/dto/categpry-dto";
+import { SaveCategoryDto } from "src/app/dto/save-category-dto";
+
+export class LoadAllCategoriesAction {
+  static readonly type = '[CategoryAdmin] Load all categories';
+  constructor() { }
+}
+
+
+export class AddCategoryAction {
+  static readonly type = '[CategoryAdmin] Add category';
+  constructor(public category: SaveCategoryDto) { }
+}
+
+
+export class DeleteCategoryAction {
+  static readonly type = '[CategoryAdmin] Delete category';
+  constructor(public category: CategoryDto) { }
+}
+import { Selector } from "@ngxs/store"
+import { CategoryAdminState, CategoryAdminStateModel } from "./category-admin.state"
+
+export class CategoryAdminSelectors {
+  @Selector([CategoryAdminState])
+  public static categories(state: CategoryAdminStateModel): any[] {
+    return state.categories
+  }
+
+  @Selector([CategoryAdminState])
+  public static loading(state: CategoryAdminStateModel): boolean {
+    return state.loading
+  }
+
+  @Selector([CategoryAdminState])
+  public static error(state: CategoryAdminStateModel): boolean {
+    return state.error
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { CategoryAdminState } from './category-admin.state';
+
+describe('CategoryAdmin actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([CategoryAdminState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { catchError, of, tap } from 'rxjs';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { AddCategoryAction, DeleteCategoryAction, LoadAllCategoriesAction } from './category-admin.actions';
+
+export class CategoryAdminStateModel {
+  categories!: CategoryDto[];
+  loading!: boolean;
+  error!: boolean;
+}
+
+const defaults = {
+  categories: [],
+  loading: false,
+  error: false,
+};
+
+@State<CategoryAdminStateModel>({
+  name: 'categoryAdmin',
+  defaults
+})
+@Injectable()
+export class CategoryAdminState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadAllCategoriesAction)
+  loadAllCategories(ctx: StateContext<CategoryAdminStateModel>,
+  ) {
+    ctx.patchState({ loading: true })
+    return this.apiService.getAllCategories().pipe(tap(response => {
+      ctx.patchState({ loading: false, error: false, categories: response as any })
+    }))
+  }
+
+  @Action(AddCategoryAction)
+  addCategory(ctx: StateContext<CategoryAdminStateModel>, { category }: AddCategoryAction
+  ) {
+    ctx.patchState({ loading: true })
+    return this.apiService.addCategory(category).pipe(tap(response => {
+      ctx.patchState({ loading: false, error: false, categories: response as any })
+    }))
+  }
+
+  @Action(DeleteCategoryAction)
+  deleteCategory(ctx: StateContext<CategoryAdminStateModel>, { category }: DeleteCategoryAction
+  ) {
+    ctx.patchState({ loading: true })
+    return this.apiService.deleteCategory(category.id).pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        if (response === null) {
+          ctx.patchState({ loading: false, error: true })
+        } else {
+          ctx.patchState({ loading: false, error: false, categories: response })
+        }
+      }))
+  }
+
+}
+import { CategoryDto } from "src/app/dto/categpry-dto";
+
+export class LoadCategoryDetailsAction {
+  static readonly type = '[CategoryDetails] Load category details';
+  constructor(public categoryId: number) { }
+}
+
+export class UpdateCategoryDetailsAction {
+  static readonly type = '[CategoryDetails] Update category details';
+  constructor(public category: CategoryDto) { }
+}
+import { Selector } from "@ngxs/store"
+import { CategoryDto } from "src/app/dto/categpry-dto"
+import { CategoryAdminStateModel } from "../category-admin/category-admin.state"
+import { CategoryDetailsState, CategoryDetailsStateModel } from "./category-details.state"
+
+export class CategoryDetailsSelectors {
+  @Selector([CategoryDetailsState])
+  public static category(state: CategoryDetailsStateModel): CategoryDto {
+    return state.category
+  }
+
+  @Selector([CategoryDetailsState])
+  public static loading(state: CategoryDetailsStateModel): boolean {
+    return state.loading
+  }
+
+  @Selector([CategoryDetailsState])
+  public static error(state: CategoryDetailsStateModel): boolean {
+    return state.error
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { CategoryDetailsState } from './category-details.state';
+
+describe('CategoryDetails actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([CategoryDetailsState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { tap } from 'rxjs';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { LoadProductDetailsAction, UpdateProductDetailsAction } from '../product-details/product-details.actions';
+import { ProductDetailsStateModel } from '../product-details/product-details.state';
+import { LoadCategoryDetailsAction, UpdateCategoryDetailsAction } from './category-details.actions';
+
+export class CategoryDetailsStateModel {
+  category!: CategoryDto;
+  loading!: boolean;
+  error!: boolean;
+}
+
+const defaults: CategoryDetailsStateModel = {
+  category: {
+    id: 0,
+    name: '',
+    description: '',
+  },
+  loading: false,
+  error: false
+};
+
+@State<CategoryDetailsStateModel>({
+  name: 'categoryDetails',
+  defaults
+})
+@Injectable()
+export class CategoryDetailsState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadCategoryDetailsAction)
+  load(ctx: StateContext<CategoryDetailsStateModel>, { categoryId }: LoadCategoryDetailsAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.getCategoryDetails(categoryId).pipe(tap(response => {
+      ctx.patchState({ loading: false, error: false, category: response as any })
+    }))
+  }
+
+  @Action(UpdateCategoryDetailsAction)
+  update(ctx: StateContext<CategoryDetailsStateModel>, { category }: UpdateCategoryDetailsAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.updateCategory(category).pipe(tap(response => {
+      ctx.patchState(defaults)
+    }))
+  }
+}
+export class LoadHomeAction {
+  static readonly type = '[Home] Load items for home';
+  constructor() { }
+}
+import { Selector } from "@ngxs/store"
+import { CategoryDto } from "src/app/dto/categpry-dto"
+import { ProductDetailsDto } from "src/app/dto/product-details-dto"
+import { HomeState, HomeStateModel } from "./home.state"
+
+export class HomeSelectors {
+  @Selector([HomeState])
+  public static topProducts(state: HomeStateModel): ProductDetailsDto[] {
+    return state.topProducts
+  }
+
+  @Selector([HomeState])
+  public static categories(state: HomeStateModel): CategoryDto[] {
+    return state.categories
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { HomeState } from './home.state';
+
+describe('Home actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([HomeState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { tap } from 'rxjs';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { LoadHomeAction } from './home.actions';
+
+export class HomeStateModel {
+  topProducts!: ProductDetailsDto[];
+  categories!: CategoryDto[];
+}
+
+const defaults: HomeStateModel = {
+  topProducts: [],
+  categories: []
+};
+
+@State<HomeStateModel>({
+  name: 'home',
+  defaults
+})
+@Injectable()
+export class HomeState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadHomeAction)
+  load(ctx: StateContext<HomeStateModel>) {
+    return this.apiService.getHome().pipe(tap(response => {
+      ctx.patchState({ topProducts: response.products, categories: response.possibleCategories })
+    }))
+  }
+}
+import { ProductDetailsDto } from "src/app/dto/product-details-dto";
+import { SaveProductDto } from "src/app/dto/save-product-dto";
+
+export class LoadAllProductsAction {
+  static readonly type = '[ProductAdmin] Load all products';
+  constructor() { }
+}
+
+
+export class AddProductAction {
+  static readonly type = '[ProductAdmin] Add product';
+  constructor(public product: SaveProductDto) { }
+}
+
+export class DeleteProductAction {
+  static readonly type = '[ProductAdmin] Delete product';
+  constructor(public product: ProductDetailsDto) { }
+}
+import { Selector } from "@ngxs/store";
+import { CategoryDto } from "src/app/dto/categpry-dto";
+import { ProductAdminState, ProductAdminStateModel } from "./product-admin.state";
+
+export class ProductAdminSelectors {
+  @Selector([ProductAdminState])
+  public static products(state: ProductAdminStateModel): any[] {
+    return state.products
+  }
+
+  @Selector([ProductAdminState])
+  public static possibleCategories(state: ProductAdminStateModel): CategoryDto[] {
+    return state.possibleCategories
+  }
+
+  @Selector([ProductAdminState])
+  public static loading(state: ProductAdminStateModel): boolean {
+    return state.loading
+  }
+
+  @Selector([ProductAdminState])
+  public static error(state: ProductAdminStateModel): boolean {
+    return state.error
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { ProductAdminState } from './product-admin.state';
+
+describe('ProductAdmin actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([ProductAdminState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Xtb } from '@angular/compiler';
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { catchError, of, tap } from 'rxjs';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ProductAdminDto } from 'src/app/dto/product-admin-dto';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { AddProductAction, DeleteProductAction, LoadAllProductsAction } from './product-admin.actions';
+
+export class ProductAdminStateModel {
+  products!: ProductDetailsDto[];
+  possibleCategories!: CategoryDto[];
+  loading!: boolean;
+  error!: boolean;
+}
+
+const defaults = {
+  products: [],
+  possibleCategories: [],
+  loading: false,
+  error: false
+};
+
+@State<ProductAdminStateModel>({
+  name: 'productAdmin',
+  defaults
+})
+@Injectable()
+export class ProductAdminState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadAllProductsAction)
+  loadAll(ctx: StateContext<ProductAdminStateModel>) {
+    ctx.patchState({ loading: true })
+    return this.apiService.getAllAdminProducts().pipe(
+      tap(({ products, possibleCategories }) => {
+        ctx.patchState({ products, possibleCategories, loading: false, error: false })
+      }))
+  }
+
+  @Action(AddProductAction)
+  saveProduct(ctx: StateContext<ProductAdminStateModel>, { product }: AddProductAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.addProduct(product).pipe(
+      tap(response => {
+        ctx.patchState({ products: response as any, loading: false, error: false })
+      }))
+  }
+
+  @Action(DeleteProductAction)
+  deleteProduct(ctx: StateContext<ProductAdminStateModel>, { product }: DeleteProductAction) {
+    return this.apiService.deleteProduct(product.id).pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        if (response === null) {
+          ctx.patchState({ loading: false, error: true })
+        } else {
+          ctx.patchState({ loading: false, error: false, products: response as any })
+        }
+      }))
+  }
+}
+import { ProductDetailsDto } from "src/app/dto/product-details-dto";
+
+export class LoadProductDetailsAction {
+  static readonly type = '[ProductDetails] Load product details';
+  constructor(public productId: number) { }
+}
+
+export class UpdateProductDetailsAction {
+  static readonly type = '[ProductDetails] Update product details';
+  constructor(public product: ProductDetailsDto) { }
+}
+import { SelectorContext } from "@angular/compiler";
+import { Selector } from "@ngxs/store";
+import { CategoryDto } from "src/app/dto/categpry-dto";
+import { ProductDetailsDto } from "src/app/dto/product-details-dto";
+import { ProductDetailsState, ProductDetailsStateModel } from "./product-details.state";
+
+export class ProductDetailsSelectors {
+  @Selector([ProductDetailsState])
+  public static productDetails(state: ProductDetailsStateModel): ProductDetailsDto {
+    return state.product
+  }
+
+  @Selector([ProductDetailsState])
+  public static possibleCategories(state: ProductDetailsStateModel): CategoryDto[] {
+    return state.product.possibleCategories || []
+  }
+
+
+  @Selector([ProductDetailsState])
+  public static loading(state: ProductDetailsStateModel): boolean {
+    return state.loading
+  }
+
+  @Selector([ProductDetailsState])
+  public static error(state: ProductDetailsStateModel): boolean {
+    return state.error
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { ProductDetailsState } from './product-details.state';
+
+describe('ProductDetails actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([ProductDetailsState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { tap } from 'rxjs';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { LoadProductDetailsAction, UpdateProductDetailsAction } from './product-details.actions';
+
+export class ProductDetailsStateModel {
+  product!: ProductDetailsDto;
+  loading!: boolean;
+  error!: boolean;
+}
+
+const defaults: ProductDetailsStateModel = {
+  product: {
+    id: 0,
+    name: '',
+    description: '',
+    price: 0,
+    enabled: true,
+    categoryIds: [],
+    possibleCategories: [],
+  },
+  loading: false,
+  error: false
+};
+
+@State<ProductDetailsStateModel>({
+  name: 'productDetails',
+  defaults
+})
+@Injectable()
+export class ProductDetailsState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadProductDetailsAction)
+  load(ctx: StateContext<ProductDetailsStateModel>, { productId }: LoadProductDetailsAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.getProductDetails(productId).pipe(tap(response => {
+      ctx.patchState({ loading: false, error: false, product: response as any })
+    }))
+  }
+
+  @Action(UpdateProductDetailsAction)
+  update(ctx: StateContext<ProductDetailsStateModel>, { product }: UpdateProductDetailsAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.updateProduct(product).pipe(tap(response => {
+      ctx.patchState(defaults)
+    }))
+  }
+}
+import { ProductSearchDto } from "src/app/dto/product-search-dto";
+
+export class LoadSearchProductsAction {
+  static readonly type = '[Products] Load search products';
+  constructor(public productSearch: ProductSearchDto) { }
+}
+import { Selector } from "@ngxs/store"
+import { CategoryDto } from "src/app/dto/categpry-dto"
+import { ProductDetailsDto } from "src/app/dto/product-details-dto"
+import { ProductsState, ProductsStateModel } from "./products.state"
+
+export class ProductsSelectors {
+  @Selector([ProductsState])
+  public static products(state: ProductsStateModel): ProductDetailsDto[] {
+    return state.products
+  }
+
+  @Selector([ProductsState])
+  public static categories(state: ProductsStateModel): CategoryDto[] {
+    return state.categories
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { ProductsState } from './products.state';
+
+describe('Products actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([ProductsState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action ', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext } from '@ngxs/store';
+import { tap } from 'rxjs';
+import { CategoryDto } from 'src/app/dto/categpry-dto';
+import { ProductDetailsDto } from 'src/app/dto/product-details-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { LoadSearchProductsAction } from './products.actions';
+
+export class ProductsStateModel {
+  products!: ProductDetailsDto[];
+  categories!: CategoryDto[];
+  loading!: boolean;
+}
+
+const defaults: ProductsStateModel = {
+  products: [],
+  categories: [],
+  loading: false
+};
+
+@State<ProductsStateModel>({
+  name: 'products',
+  defaults
+})
+@Injectable()
+export class ProductsState {
+
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadSearchProductsAction)
+  add(ctx: StateContext<ProductsStateModel>, { productSearch }: LoadSearchProductsAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.searchAllProducts(productSearch).pipe(tap(response => {
+      ctx.patchState({ loading: false, products: response.products, categories: response.possibleCategories })
+    }))
+  }
+}
+export class LoadPurchaseAction {
+  static readonly type = '[Purchases] Load purchase by id';
+  constructor(public purchaseId: number) { }
+}
+
+export class LoadPurchasesAction {
+  static readonly type = '[Purchases] Load purchases';
+  constructor() { }
+}
+import { Selector } from "@ngxs/store"
+import { CategoryDto } from "src/app/dto/categpry-dto"
+import { ProductDetailsDto } from "src/app/dto/product-details-dto"
+import { PurchaseDto } from "src/app/dto/purchase-dto"
+import { displayPrice } from "src/app/utilities/price.utilities"
+import { PurchasesState, PurchasesStateModel } from "./purchases.state"
+
+export class PurchasesSelectors {
+  @Selector([PurchasesState])
+  public static purchase(state: PurchasesStateModel): PurchaseDto | {} {
+    return state.purchase
+  }
+
+  @Selector([PurchasesState])
+  public static categories(state: PurchasesStateModel): PurchaseDto[] {
+    return state.purchases
+  }
+
+  @Selector([PurchasesState])
+  public static total(state: PurchasesStateModel): string {
+    return displayPrice(
+      (state.purchase as any)
+        .products
+        ?.reduce((accumulator: number, product: ProductDetailsDto) => accumulator += product.price, 0))
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { ApiService } from 'src/app/services/api.service';
+import { PurchasesState } from './purchases.state';
+
+describe('Purchases actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([PurchasesState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext, Store } from '@ngxs/store';
+import { tap } from 'rxjs';
+import { PurchaseDto } from 'src/app/dto/purchase-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { LoadPurchaseAction, LoadPurchasesAction } from './purchases.actions';
+
+export class PurchasesStateModel {
+  purchase!: PurchaseDto | {};
+  purchases!: PurchaseDto[];
+}
+
+const defaults = {
+  purchase: {},
+  purchases: []
+};
+
+@State<PurchasesStateModel>({
+  name: 'purchases',
+  defaults
+})
+@Injectable()
+export class PurchasesState {
+  constructor(private apiService: ApiService) { }
+
+  @Action(LoadPurchaseAction)
+  loadPurchase(ctx: StateContext<PurchasesStateModel>, { purchaseId }: LoadPurchaseAction) {
+    return this.apiService.getPurchaseDetails(purchaseId).pipe(tap((response) => {
+      ctx.patchState({ purchase: response })
+    }))
+  }
+
+  @Action(LoadPurchasesAction)
+  loadPurchases(ctx: StateContext<PurchasesStateModel>) {
+    return this.apiService.getPurchases().pipe(tap((response) => {
+      ctx.patchState({ purchases: response })
+    }))
+  }
+}
+import { NgModule } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { NgxsModule } from '@ngxs/store';
+import { environment } from 'src/environments/environment';
+import { UserState } from './user/user.state';
+import { NgxsReduxDevtoolsPluginModule } from '@ngxs/devtools-plugin';
+import { LoadAllProductsAction } from './product-admin/product-admin.actions';
+import { ProductAdminState } from './product-admin/product-admin.state';
+import { ProductDetailsState } from './product-details/product-details.state';
+import { CategoryAdminState } from './category-admin/category-admin.state';
+import { CategoryDetailsState } from './category-details/category-details.state';
+import { HomeState } from './home/home.state';
+import { ProductsState } from './products/products.state';
+import { CartState } from './cart/cart.state';
+import { PurchasesState } from './purchases/purchases.state';
+
+const states = [
+  UserState,
+  ProductAdminState,
+  ProductDetailsState,
+  CategoryAdminState,
+  CategoryDetailsState,
+  HomeState,
+  ProductsState,
+  CartState,
+  PurchasesState
+]
+
+
+@NgModule({
+  declarations: [],
+  imports: [
+    CommonModule,
+    NgxsModule.forRoot(states, {
+      developmentMode: !environment.production,
+    }),
+    NgxsReduxDevtoolsPluginModule.forRoot()
+  ]
+})
+export class StoreModuleModule { }
+
+export class CheckMeAction {
+  static readonly type = '[User] Check user me';
+}
+
+
+export class LoginAction {
+  static readonly type = '[User] Login user';
+  constructor(public email: string, public password: string) { }
+}
+
+export class RegisterAction {
+  static readonly type = '[User] Register user';
+  constructor(public email: string, public password: string) { }
+}
+
+export class LogoutAction {
+  static readonly type = '[User] Logout user';
+}
+import { SelectorContext } from "@angular/compiler";
+import { Selector } from "@ngxs/store";
+import { UserState, UserStateModel } from "./user.state";
+
+export class UserSelectors {
+  @Selector([UserState])
+  public static user(state: UserStateModel): { email?: string, isAdmin?: boolean } {
+    return state.user
+  }
+
+  @Selector([UserState])
+  public static email(state: UserStateModel): string {
+    return state.user.email as string
+  }
+
+  @Selector([UserState])
+  public static password(state: UserStateModel): string {
+    return state.user.password as string
+  }
+
+  @Selector([UserState])
+  public static loggedIn(state: UserStateModel): boolean {
+    return !!state.user.email
+  }
+
+  @Selector([UserState])
+  public static isAdmin(state: UserStateModel): boolean {
+    return !!state.user.isAdmin
+  }
+
+  @Selector([UserState])
+  public static loading(state: UserStateModel): boolean {
+    return state.loading
+  }
+
+  @Selector([UserState])
+  public static error(state: UserStateModel): boolean {
+    return state.error
+  }
+}
+import { TestBed, async } from '@angular/core/testing';
+import { NgxsModule, Store } from '@ngxs/store';
+import { UserState } from './user.state';
+import { LoginAction } from './user.actions';
+import { ApiService } from 'src/app/services/api.service';
+
+describe('User actions', () => {
+  let store: Store;
+
+  beforeEach(async(() => {
+    TestBed.configureTestingModule({
+      imports: [NgxsModule.forRoot([UserState])],
+      providers: [{ provide: ApiService, useValue: {} }]
+    }).compileComponents();
+    store = TestBed.get(Store);
+  }));
+
+  it('should create an action', () => {
+
+  });
+
+});
+import { Injectable } from '@angular/core';
+import { State, Action, StateContext, NgxsOnInit } from '@ngxs/store';
+import { catchError, concatMap, EMPTY, of, tap } from 'rxjs';
+import { UserDto } from 'src/app/dto/user-dto';
+import { ApiService } from 'src/app/services/api.service';
+import { CheckMeAction, LoginAction, LogoutAction, RegisterAction } from './user.actions';
+
+export class UserStateModel {
+  user!: UserDto
+  loading!: boolean;
+  error!: boolean;
+}
+
+const defaults: UserStateModel = {
+  user: {
+    email: '',
+    password: '',
+    isAdmin: false
+  },
+  loading: false,
+  error: false
+};
+
+@State<UserStateModel>({
+  name: 'user',
+  defaults
+})
+@Injectable()
+export class UserState implements NgxsOnInit {
+
+  constructor(private apiService: ApiService) { }
+
+  ngxsOnInit(ctx: StateContext<UserStateModel>) {
+    ctx.patchState({ user: this.getPersistedUser() })
+  }
+
+  @Action(CheckMeAction)
+  me(ctx: StateContext<UserStateModel>) {
+    ctx.patchState({ loading: true })
+    return this.apiService.me().pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        ctx.patchState({ loading: false })
+        if (!response) {
+          ctx.patchState({ user: defaults.user })
+          this.deletePersistedUser()
+        }
+      })
+    )
+  }
+
+  @Action(LoginAction)
+  login(ctx: StateContext<UserStateModel>, { email, password }: LoginAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.login(email, password).pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap((response: any) => {
+        ctx.patchState({ loading: false })
+        if (!response) {
+          ctx.patchState({ error: true, user: defaults.user })
+          this.deletePersistedUser();
+        } else {
+          ctx.patchState({ error: false, user: { email, password, isAdmin: response.isAdmin } })
+          this.persistUser(ctx.getState().user)
+        }
+      })
+    )
+  }
+
+  @Action(LogoutAction)
+  logout(ctx: StateContext<UserStateModel>) {
+    ctx.patchState({ loading: true })
+    return this.apiService.logout().pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap(response => {
+        ctx.patchState(defaults)
+        this.deletePersistedUser()
+      })
+    )
+  }
+
+  @Action(RegisterAction)
+  register(ctx: StateContext<UserStateModel>, { email, password }: RegisterAction) {
+    ctx.patchState({ loading: true })
+    return this.apiService.register(email, password).pipe(
+      catchError(error => {
+        console.error(error)
+        return of(null)
+      }),
+      tap((response: any) => {
+        if (!response || !response.email) {
+          ctx.patchState({ ...defaults, error: true, })
+        } else {
+          ctx.patchState(defaults)
+        }
+      })
+    )
+  }
+
+  persistUser(user: UserDto) {
+    localStorage.setItem('pgfsd-user', JSON.stringify(user))
+  }
+
+  getPersistedUser(): UserDto {
+    if (localStorage.getItem('pgfsd-user')) {
+      return JSON.parse(localStorage.getItem('pgfsd-user') as string)
+    }
+    return defaults.user
+  }
+
+  deletePersistedUser() {
+    localStorage.removeItem('pgfsd-user')
+  }
+}
+export const displayPrice = (price: number | undefined | null) => {
+  price = price || 0;
+  return `$ ${price / 100}`
+}
+export const environment = {
+  production: true,
+  api: `/api`
+};
+
+export const environment = {
+  production: false,
+  api: 'http://localhost:8080/api'
+};
+import { enableProdMode } from '@angular/core';
+import { platformBrowserDynamic } from '@angular/platform-browser-dynamic';
+
+import { AppModule } from './app/app.module';
+import { environment } from './environments/environment';
+
+if (environment.production) {
+  enableProdMode();
+}
+
+platformBrowserDynamic().bootstrapModule(AppModule)
+  .catch(err => console.error(err));
+/**
+ * This file includes polyfills needed by Angular and is loaded before the app.
+ * You can add your own extra polyfills to this file.
+ *
+ * This file is divided into 2 sections:
+ *   1. Browser polyfills. These are applied before loading ZoneJS and are sorted by browsers.
+ *   2. Application imports. Files imported after ZoneJS that should be loaded before your main
+ *      file.
+ *
+ * The current setup is for so-called "evergreen" browsers; the last versions of browsers that
+ * automatically update themselves. This includes recent versions of Safari, Chrome (including
+ * Opera), Edge on the desktop, and iOS and Chrome on mobile.
+ *
+ * Learn more in https://angular.io/guide/browser-support
+ */
+
+/***************************************************************************************************
+ * BROWSER POLYFILLS
+ */
+
+/**
+ * By default, zone.js will patch all possible macroTask and DomEvents
+ * user can disable parts of macroTask/DomEvents patch by setting following flags
+ * because those flags need to be set before `zone.js` being loaded, and webpack
+ * will put import in the top of bundle, so user need to create a separate file
+ * in this directory (for example: zone-flags.ts), and put the following flags
+ * into that file, and then add the following code before importing zone.js.
+ * import './zone-flags';
+ *
+ * The flags allowed in zone-flags.ts are listed here.
+ *
+ * The following flags will work for all browsers.
+ *
+ * (window as any).__Zone_disable_requestAnimationFrame = true; // disable patch requestAnimationFrame
+ * (window as any).__Zone_disable_on_property = true; // disable patch onProperty such as onclick
+ * (window as any).__zone_symbol__UNPATCHED_EVENTS = ['scroll', 'mousemove']; // disable patch specified eventNames
+ *
+ *  in IE/Edge developer tools, the addEventListener will also be wrapped by zone.js
+ *  with the following flag, it will bypass `zone.js` patch for IE/Edge
+ *
+ *  (window as any).__Zone_enable_cross_context_check = true;
+ *
+ */
+
+/***************************************************************************************************
+ * Zone JS is required by default for Angular itself.
+ */
+import 'zone.js';  // Included with Angular CLI.
+
+
+/***************************************************************************************************
+ * APPLICATION IMPORTS
+ */
+// This file is required by karma.conf.js and loads recursively all the .spec and framework files
+
+import 'zone.js/testing';
+import { getTestBed } from '@angular/core/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting
+} from '@angular/platform-browser-dynamic/testing';
+
+declare const require: {
+  context(path: string, deep?: boolean, filter?: RegExp): {
+    <T>(id: string): T;
+    keys(): string[];
+  };
+};
+
+// First, initialize the Angular testing environment.
+getTestBed().initTestEnvironment(
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting(),
+);
+
+// Then we find all the tests.
+const context = require.context('./', true, /\.spec\.ts$/);
+// And load the modules.
+context.keys().forEach(context);
+<nav class="navbar navbar-expand bg-light">
+    <div class="container-fluid">
+        <a class="navbar-brand" [routerLink]="[routeConstants.home]">Medicare</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav">
+              <li class="nav-item">
+                <a class="btn nav-link" [routerLink]="[routeConstants.products]">Products</a>
+              </li>
+                <ng-container *ngIf="!(loggedIn$ | async)">
+                    <li class="nav-item">
+                        <a class="btn nav-link" [routerLink]="[routeConstants.login]"> Login </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="btn nav-link" [routerLink]="[routeConstants.register]">
+                            Register
+                        </a>
+                    </li>
+                </ng-container>
+                <ng-container *ngIf="loggedIn$ | async">
+                    <li class="nav-item">
+                        <a class="btn nav-link" [routerLink]="[routeConstants.cart]">Cart</a>
+                    </li>
+                    <li class="nav-item">
+                        <button class="btn nav-link" (click)="logout()">Logout</button>
+                    </li>
+                </ng-container>
+                <li *ngIf="isAdmin$ | async" class="nav-item">
+                    <a class="btn nav-link" [routerLink]="[routeConstants.admin]">Admin</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+<div class="container-fluid p-3">
+    <router-outlet></router-outlet>
+</div>
+<article class="card p-4">
+    <a [routerLink]="[routeConstants.products, product.id]" class="d-block w-100 btn p-0">
+        <img class="product-image" [src]="product.imageUrl" [alt]="product.name" />
+        <h5 class="d-block w-100 mt-2 text-start">{{ product.name }}</h5>
+    </a>
+    <p>{{ displayPrice(product.price) }}</p>
+    <button
+        *ngIf="loggedIn$ | async; else loggedOut"
+        [disabled]="loading$ | async"
+        (click)="addToCart()"
+        class="btn btn-secondary"
+    >
+        Add to cart
+    </button>
+    <ng-template #loggedOut>
+        <button [disabled]="true" class="btn btn-secondary">Login to add to cart</button>
+    </ng-template>
+</article>
+<form class="form-group" (submit)="search($event)">
+    <div class="row align-items-center">
+        <div class="col-12 col-sm mb-2 mb-sm-0">
+            <select class="form-control" id="category" [formControl]="categoryControl">
+                <option class="text-muted" value="">All Categories</option>
+                <option *ngFor="let category of categories" [value]="category.id">
+                    {{ category.name }}
+                </option>
+            </select>
+        </div>
+        <div class="col-12 col-sm-8">
+            <input
+                id="search"
+                class="form-control w-100"
+                type="text"
+                placeholder="search products"
+                [formControl]="searchControl"
+            />
+        </div>
+        <div class="col mt-2 mt-sm-0">
+            <button class="btn btn-primary w-100">Search</button>
+        </div>
+    </div>
+</form>
+<h1>Admin Panel</h1>
+<ul>
+    <li><a [routerLink]="[routeConstants.productAdmin]">Products</a></li>
+    <li><a [routerLink]="[routeConstants.categoryAdmin]">Categories</a></li>
+</ul>
+<form (submit)="submit($event)" class="card form-group p-3" [formGroup]="addCategoryForm">
+    <h3>Edit category</h3>
+    <label class="form-label" for="name">Name</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="name"
+        type="text"
+        formControlName="name"
+    />
+    <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 100 chars
+    </p>
+    <label class="form-label" for="description">Description</label>
+    <textarea
+        required
+        autocomplete="off"
+        class="form-control"
+        id="description"
+        type="text"
+        formControlName="description"
+    >
+    </textarea>
+    <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 200 chars
+    </p>
+    <button [disabled]="addCategoryForm.invalid" class="btn btn-primary mt-3" type="submit">
+        Add+
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">
+        An error occurred please try again.
+    </p>
+</form>
+<h2 class="text-center">Categories</h2>
+<p *ngIf="error$ | async" class="text-danger text-center">
+    An error occured please make sure your category does not have any products depending on it and
+    try again.
+</p>
+<div class="card p-3 my-3">
+    <div class="row fw-bold pb-3 border-bottom">
+        <div class="col-2 col-sm-1">Id</div>
+        <div class="col-3 col-sm-3">Name</div>
+        <div class="col-4 col-sm-4">Description</div>
+        <div class="col-1 col-sm-1"></div>
+    </div>
+    <div class="row border-bottom" *ngFor="let category of categories$ | async; trackBy: trackByFn">
+        <div class="col-2 col-sm-1 fw-bold">{{ category.id }}</div>
+        <div class="col-3 col-sm-3">{{ category.name }}</div>
+        <div class="col-4 col-sm-4">{{ category.description }}</div>
+        <div class="col-1 col-sm-1">
+            <button class="btn" [routerLink]="[category.id]"><i class="bi-pencil"></i></button>
+            <button class="btn" (click)="delete(category)"><i class="bi-trash"></i></button>
+        </div>
+    </div>
+</div>
+
+<app-add-category></app-add-category>
+<form (submit)="submit($event)" class="card form-group p-3" [formGroup]="editCategoryForm">
+    <h3>Edit category</h3>
+    <label class="form-label" for="id">Id</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="id"
+        type="text"
+        formControlName="id"
+    />
+
+    <label class="form-label" for="name">Name</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="name"
+        type="text"
+        formControlName="name"
+    />
+    <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 100 chars
+    </p>
+    <label class="form-label" for="description">Description</label>
+    <textarea
+        required
+        autocomplete="off"
+        class="form-control"
+        id="description"
+        type="text"
+        formControlName="description"
+    >
+    </textarea>
+    <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 200 chars
+    </p>
+    <button [disabled]="editCategoryForm.invalid" class="btn btn-primary mt-3" type="submit">
+        Update
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">
+        An error occurred please try again.
+    </p>
+</form>
+<form (submit)="submit($event)" class="card form-group p-3" [formGroup]="addProductForm">
+    <h3>Add product</h3>
+    <label class="form-label" for="name">Name</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="name"
+        type="text"
+        formControlName="name"
+    />
+    <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 100 chars
+    </p>
+    <label class="form-label" for="description">Description</label>
+    <textarea
+        required
+        autocomplete="off"
+        class="form-control"
+        id="description"
+        type="text"
+        formControlName="description"
+    >
+    </textarea>
+    <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 200 chars
+    </p>
+    <label class="form-label" for="price">Price (in cents)</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="price"
+        type="tel"
+        formControlName="price"
+    />
+    <p *ngIf="price?.touched && price?.invalid" class="text-danger mt-1">
+        This field is required, can only contain integers and needs to be greater then 1.
+    </p>
+    <div class="form-check my-2">
+        <input
+            class="form-check-input"
+            type="checkbox"
+            id="enabled"
+            required
+            formControlName="enabled"
+        />
+        <label class="form-check-label" for="enabled">Enabled</label>
+    </div>
+    <label class="form-label" for="categpry">Categories (CTRL click for multiple)</label>
+    <select class="form-control" id="categpry" [multiple]="true" formControlName="categoryIds">
+        <option *ngFor="let category of possibleCategories$ | async" [value]="category.id">
+            {{ category.name }}
+        </option>
+    </select>
+    <label class="form-label" for="imageUrl">Image Url</label>
+    <input
+        autocomplete="off"
+        class="form-control"
+        id="imageUrl"
+        type="text"
+        formControlName="imageUrl"
+    />
+    <img class="preview mt-3" *ngIf="imageUrl?.value" [src]="imageUrl?.value" alt="preview image" />
+    <button [disabled]="addProductForm.invalid" class="btn btn-primary mt-3" type="submit">
+        Add+
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">
+        An error occurred please try again.
+    </p>
+</form>
+<form (submit)="submit($event)" class="card form-group p-3" [formGroup]="editProductForm">
+    <h3>Edit product</h3>
+    <label class="form-label" for="id">Id</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="id"
+        type="text"
+        formControlName="id"
+    />
+    <label class="form-label" for="name">Name</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="name"
+        type="text"
+        formControlName="name"
+    />
+    <p *ngIf="name?.touched && name?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 100 chars
+    </p>
+    <label class="form-label" for="description">Description</label>
+    <textarea
+        required
+        autocomplete="off"
+        class="form-control"
+        id="description"
+        type="text"
+        formControlName="description"
+    >
+    </textarea>
+    <p *ngIf="description?.touched && description?.invalid" class="text-danger mt-1">
+        This field is required and has a min length of 3 and a max length of 200 chars
+    </p>
+    <label class="form-label" for="price">Price (in cents)</label>
+    <input
+        required
+        autocomplete="off"
+        class="form-control"
+        id="price"
+        type="tel"
+        formControlName="price"
+    />
+    <p *ngIf="price?.touched && price?.invalid" class="text-danger mt-1">
+        This field is required, can only contain integers and needs to be greater then 1.
+    </p>
+    <div class="form-check my-2">
+        <input class="form-check-input" type="checkbox" id="enabled" formControlName="enabled" />
+        <label class="form-check-label" for="enabled">Enabled</label>
+    </div>
+    <label class="form-label" for="categpry">Categories (CTRL click for multiple)</label>
+    <select class="form-control" id="categpry" [multiple]="true" formControlName="categoryIds">
+        <option *ngFor="let category of possibleCategories$ | async" [value]="category.id">
+            {{ category.name }}
+        </option>
+    </select>
+    <label class="form-label" for="imageUrl">Image Url</label>
+    <input
+        autocomplete="off"
+        class="form-control"
+        id="imageUrl"
+        type="text"
+        formControlName="imageUrl"
+    />
+    <img class="preview mt-3" *ngIf="imageUrl?.value" [src]="imageUrl?.value" alt="preview image" />
+    <button [disabled]="editProductForm.invalid" class="btn btn-primary mt-3" type="submit">
+        Save
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">
+        An error occurred please try again.
+    </p>
+</form>
+<h2 class="text-center">Products</h2>
+<p *ngIf="error$ | async" class="text-danger text-center">
+    An error occured please make sure your product does not have any purchases depending on it and
+    try again.
+</p>
+<div class="card p-3 my-3">
+    <div class="row fw-bold pb-3 border-bottom">
+        <div class="col-2 col-sm-1">Id</div>
+        <div class="col-3 col-sm-3">Name</div>
+        <div class="col-4 col-sm-4">Description</div>
+        <div class="col-2 col-sm-2">$</div>
+        <div class="col-1 col-sm-1"></div>
+    </div>
+    <div class="row border-bottom" *ngFor="let product of products$ | async; trackBy: trackByFn">
+        <div class="col-2 col-sm-1 fw-bold">
+            {{ product.id }}
+            <i *ngIf="!product.enabled" class="bi-x-octagon-fill"></i>
+        </div>
+        <div class="col-3 col-sm-3">
+            {{ product.name }}
+        </div>
+        <div class="col-4 col-sm-4">{{ product.description }}</div>
+        <div class="col-2 col-sm-2">{{ product.price }}</div>
+        <div class="col-1 col-sm-1">
+            <button class="btn" [routerLink]="[product.id]"><i class="bi-pencil"></i></button>
+            <button class="btn" (click)="delete(product)"><i class="bi-trash"></i></button>
+        </div>
+    </div>
+</div>
+
+<app-add-product></app-add-product>
+<h1 class="text-center">Cart</h1>
+<main class="card p-2 p-sm-4 m-2 m-sm-4">
+    <ng-container *ngIf="cart$ | async as cart">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Product ID</th>
+                    <th scope="col">Product Name</th>
+                    <th scope="col">Price</th>
+                    <th scope="col"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let product of cart.products">
+                    <th scope="row">{{ product.id }}</th>
+                    <td>{{ product.name }}</td>
+                    <td>{{ displayPrice(product.price) }}</td>
+                    <td>
+                        <button (click)="delete(product.id)" class="btn">
+                            <i class="bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+            <tfoot>
+                <tr class="table-info">
+                    <th scope="row">Total</th>
+                    <td></td>
+                    <th scope="col">{{ getTotal(cart.products) }}</th>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+        <button
+            [disabled]="isEmptyCart$ | async"
+            (click)="checkout()"
+            class="btn btn-secondary w-100"
+        >
+            Checkout
+        </button>
+    </ng-container>
+</main>
+<main class="card m-4 p-4">
+    <h1 class="text-center">Checkout</h1>
+    <h2 *ngIf="isEmptyCart$ | async; else cartNotEmpty" class="text-danger">Nothing in Cart</h2>
+    <ng-template #cartNotEmpty>
+        <h2 class="mb-3">
+            Total to pay:
+            <span class="fw-bold">{{ total$ | async }}</span>
+        </h2>
+    </ng-template>
+    <form (submit)="payNow($event)" class="form-group" [formGroup]="checkoutForm">
+        <label class="form-label" for="card">
+            Mock Payment Card <br />
+            (please do not enter any real credit or debit cards)
+        </label>
+        <input class="form-control mb-2" type="text" id="card" formControlName="card" />
+        <p *ngIf="card?.touched && card?.invalid" class="text-danger">
+            This field is required and can only contain numbers.
+        </p>
+        <label class="form-label" for="address">Address</label>
+        <textarea
+            class="form-control"
+            name="address"
+            id="address"
+            rows="5"
+            formControlName="address"
+        ></textarea>
+        <p *ngIf="address?.touched && address?.invalid" class="text-danger">
+            This field is required.
+        </p>
+        <h2 *ngIf="error$ | async" class="text-danger mt-3">
+            An error occured and no payment was taken.<br />
+            Please try again later.
+        </h2>
+        <button
+            [disabled]="checkoutForm.invalid || (isEmptyCart$ | async) || (loading$ | async)"
+            class="btn btn-secondary w-100 mt-3"
+            type="submit"
+        >
+            Pay Now
+        </button>
+    </form>
+</main>
+<app-product-search [categories]="categories$ | async"></app-product-search>
+<main class="row my-4">
+    <div class="col-12 mb-4">
+        <carousel [isAnimated]="true">
+            <slide>
+                <div class="slide-container">
+                    <img
+                        class="img-slide"
+                        src="../../../assets/pictures/home1.webp"
+                        alt="first slide"
+                    />
+                    <h1 class="slide-title">Medicare</h1>
+                </div>
+            </slide>
+            <slide>
+                <div class="slide-container">
+                    <img
+                        class="img-slide"
+                        src="../../../assets/pictures/home2.jpg"
+                        alt="seconde slide"
+                    />
+                    <h1 class="slide-title">Medicare</h1>
+                </div>
+            </slide>
+        </carousel>
+    </div>
+    <div class="col-5 col-sm-3">
+        <h3 class="mb-4">&nbsp;</h3>
+        <ul class="list-group">
+            <li *ngFor="let category of categories$ | async" class="list-group-item p-1">
+                <a
+                    class="btn"
+                    [routerLink]="[routeConstants.products]"
+                    queryParamsHandling="merge"
+                    [queryParams]="{ cid: category.id }"
+                >
+                    {{ category.name }}
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="col-7 col-sm-9">
+        <h3 class="mb-4">Top Products</h3>
+        <div class="row g-3">
+            <app-product-card
+                *ngFor="let topProduct of topProducts$ | async"
+                [product]="topProduct"
+                class="col-12 col-sm-6 col-md-4 col-lg-3"
+            ></app-product-card>
+        </div>
+    </div>
+</main>
+<form [formGroup]="loginForm" (submit)="login($event)" class="form-group card p-4">
+  <h1 class="text-center mb-3">Login</h1>
+  <label for="email" class="form-label">Email</label>
+  <input formControlName="email" type="email" id="email" class="form-control">
+  <small *ngIf="email?.touched && email?.invalid" class="text-danger my-1">Field required</small>
+  <label for="Password" class="form-label">Password</label>
+  <input formControlName="password" type="password" id="Password" class="form-control">
+  <small *ngIf="password?.touched && password?.invalid" class="text-danger mt-1">Field required</small>
+  <button [disabled]="loginForm.invalid || (loading$ | async)" class="btn btn-primary mt-3 mb-2" type="submit">Login</button>
+  <p *ngIf="error$ | async" class="alert alert-danger mt-2">An error occurred please check your username and password.</p>
+</form>
+<main *ngIf="product$ | async as product" class="row">
+    <div class="col-12 col-sm-6 mb-4">
+        <img class="w-100 d-block product-image" [src]="product.imageUrl" [alt]="product.name" />
+    </div>
+    <div class="col-12 col-sm-6">
+        <h2 class="mb-4">{{ product.name }}</h2>
+        <p class="mb-4">{{ product.description }}</p>
+        <p class="mb-3 fw-bold">{{ displayPrice(product.price) }}</p>
+        <button
+            *ngIf="loggedIn$ | async; else loggedOut"
+            (click)="addToCart(product)"
+            class="btn btn-secondary w-100"
+            [disabled]="loading$ | async"
+        >
+            Add to cart
+        </button>
+        <ng-template #loggedOut>
+            <button [disabled]="true" class="btn btn-secondary w-100">Login to add to cart</button>
+        </ng-template>
+    </div>
+</main>
+<app-product-search [categories]="categories$ | async"></app-product-search>
+<main class="row">
+    <h3 class="mb-4">Products</h3>
+    <div class="row g-3">
+        <app-product-card
+            *ngFor="let product of products$ | async"
+            [product]="product"
+            class="col-12 col-sm-6 col-md-4 col-lg-3"
+        ></app-product-card>
+    </div>
+</main>
+<main class="card mx-4 mt-4 px-4 pt-4">
+    <h1 class="text-center">Purchase Confirmation</h1>
+    <p class="text-center mb-5">Thank you for your purchase</p>
+    <div *ngIf="purchase$ | async as purchase" class="row">
+        <strong class="col-6">Total:</strong>
+        <p class="col-6">{{ total$ | async }}</p>
+        <strong class="col-6">Credit card ending in:</strong>
+        <p class="col-6">____________________{{ purchase.creditCardNumber }}</p>
+        <strong class="col-6">Address:</strong>
+        <p class="col-6">{{ purchase.address }}</p>
+        <strong class="col-12">Products:</strong>
+        <div class="col-12 p-3">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">Product ID</th>
+                        <th scope="col">Product Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let product of purchase.products">
+                        <th scope="row">{{ product.id }}</th>
+                        <td>{{ product.name }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<div class="m-4">
+    <button [routerLink]="[routeConstants.home]" class="btn btn-secondary w-100">
+        Continue Shopping
+    </button>
+</div>
+<form [formGroup]="registerForm" (submit)="register($event)" class="form-group card p-4">
+    <h1 class="text-center mb-3">Register</h1>
+    <label for="email" class="form-label">Email</label>
+    <input formControlName="email" type="email" id="email" class="form-control" />
+    <small *ngIf="email?.touched && email?.invalid" class="text-danger my-1">Field required</small>
+    <label for="Password" class="form-label">Password</label>
+    <input formControlName="password" type="password" id="Password" class="form-control" />
+    <small *ngIf="password?.touched && password?.invalid" class="text-danger mt-1">
+        Field required
+    </small>
+    <button [disabled]="registerForm.invalid" class="btn btn-primary mt-3 mb-2" type="submit">
+        Register
+    </button>
+    <p *ngIf="error$ | async" class="alert alert-danger mt-2">An error occurred please check your username and password.</p>
+</form>
+<h1 class="alert alert-success h3 text-center m-4 p-5">
+  You registration was successfull.
+  Please <a [routerLink]="['',routeConstants.login]">login</a>
+</h1>
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Medicare</title>
+        <base href="/" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" type="image/x-icon" href="favicon.ico" />
+    </head>
+    <body>
+        <app-root></app-root>
+    </body>
+</html>
+.container-fluid {
+  max-width: 960px;
+  margin: 0 auto;
+  width: 100%;
+}
+.product-image {
+  max-height: 180px;
+  min-height: 180px;
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  display: block;
+}
+.preview {
+  display: block;
+  width: 100%;
+  max-width: 150px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.preview {
+  display: block;
+  width: 100%;
+  max-width: 150px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.img-slide {
+  width: 100%;
+  max-height: 160px;
+  object-fit: cover;
+}
+
+.slide-container {
+  position: relative;
+}
+
+.slide-title {
+  position: absolute;
+  top: 60px;
+  left: 0;
+  width: 100%;
+  text-align: center;
+  color: black;
+}
+.card {
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
+}
+.product-image{
+  max-height: 330px;
+  object-fit: contain;
+  margin: 0 auto;
+}
+
+.card {
+  max-width: 500px;
+  width: 100%;
+  margin: 0 auto;
+}
+@import "~bootstrap-icons/font/bootstrap-icons.css";
